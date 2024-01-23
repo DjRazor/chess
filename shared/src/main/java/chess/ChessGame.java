@@ -96,7 +96,31 @@ public class ChessGame {
      * @param board the new board to use
      */
     public void setBoard(ChessBoard board) {
-        throw new RuntimeException("Not implemented");
+        // Setting all pawns
+        for (int i = 0; i < 8; i++) {
+            board.addPiece(new ChessPosition(1, i), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.PAWN));
+            board.addPiece(new ChessPosition(6, i), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.PAWN));
+        }
+        // Setting White pieces
+        board.addPiece(new ChessPosition(0, 0), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.ROOK));
+        board.addPiece(new ChessPosition(0, 1), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.KNIGHT));
+        board.addPiece(new ChessPosition(0, 2), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.BISHOP));
+        board.addPiece(new ChessPosition(0, 3), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.KING));
+        board.addPiece(new ChessPosition(0, 4), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.QUEEN));
+        board.addPiece(new ChessPosition(0, 5), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.BISHOP));
+        board.addPiece(new ChessPosition(0, 6), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.KNIGHT));
+        board.addPiece(new ChessPosition(0, 7), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.ROOK));
+
+        // Setting Black pieces
+        board.addPiece(new ChessPosition(7, 0), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.ROOK));
+        board.addPiece(new ChessPosition(7, 1), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.KNIGHT));
+        board.addPiece(new ChessPosition(7, 2), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.BISHOP));
+        board.addPiece(new ChessPosition(7, 3), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.KING));
+        board.addPiece(new ChessPosition(7, 4), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.QUEEN));
+        board.addPiece(new ChessPosition(7, 5), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.BISHOP));
+        board.addPiece(new ChessPosition(7, 6), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.KNIGHT));
+        board.addPiece(new ChessPosition(7, 7), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.ROOK));
+
     }
 
     /**

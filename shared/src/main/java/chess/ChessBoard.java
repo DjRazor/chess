@@ -9,9 +9,7 @@ package chess;
 public class ChessBoard {
 
     private ChessPiece[][] battleField = new ChessPiece[8][8];
-    public ChessBoard() {
-        
-    }
+    public ChessBoard() {}
 
     /**
      * Adds a chess piece to the chessboard
