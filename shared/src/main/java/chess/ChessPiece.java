@@ -1,6 +1,5 @@
 package chess;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
@@ -47,6 +46,16 @@ public class ChessPiece {
         return Objects.hash(id, name, pieceColor, type);
     }
 
+    @Override
+    public String toString() {
+        return "ChessPiece{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", pieceColor=" + pieceColor +
+                ", type=" + type +
+                '}';
+    }
+
     /**
      * @return Which team this chess piece belongs to
      */
@@ -59,6 +68,49 @@ public class ChessPiece {
      */
     public PieceType getPieceType() {
         return type;
+    }
+
+    public ChessPosition positionBooster(ChessPosition position){
+        return new ChessPosition(position.getRow() + 1, position.getColumn() + 1);
+    }
+    public boolean checkSpot(ChessBoard board, ChessPosition position) {
+        return position.getRow() >= 0 && position.getRow() <= 7 && position.getColumn() >= 0 && position.getColumn() <= 7 && board.getPiece(position) == null;
+    }
+    public boolean checkEnemy(ChessBoard board, ChessPosition position, ChessPiece currentPiece) {
+        if (position.getRow() >= 0 && position.getRow() <= 7 && position.getColumn() >= 0 && position.getColumn() <= 7 && board.getPiece(position) != null) {
+            if (currentPiece.getTeamColor() != board.getPiece(position).getTeamColor()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public Collection<ChessMove> pawnMoves(ChessBoard board, ChessPosition myPosition) {
+        ChessPiece currentPiece = board.getPiece(myPosition);
+        Collection<ChessMove> pawnPossibles = new HashSet<>();
+        ChessPosition top = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn());
+        ChessPosition twoTop = new ChessPosition(myPosition.getRow() + 2, myPosition.getColumn());
+        ChessPosition twoBottom = new ChessPosition(myPosition.getRow() - 2, myPosition.getColumn());
+        ChessPosition topLeft = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn() - 1);
+        ChessPosition topRight = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn() + 1);
+
+        // Checks to see if unmoved pawn can move 2 spaces
+        if (currentPiece.getTeamColor() == ChessGame.TeamColor.WHITE && myPosition.getRow() == 1 && board.getPiece(twoTop) == null) {
+            pawnPossibles.add(new ChessMove(myPosition, positionBooster(twoTop), null));
+        } else if (currentPiece.getTeamColor() == ChessGame.TeamColor.BLACK && myPosition.getRow() == 6 && board.getPiece(twoBottom) == null) {
+            pawnPossibles.add(new ChessMove(myPosition, positionBooster(twoBottom), null));
+        }
+
+        // Checks if pawn can move one spot forward
+        if (checkSpot(board, top) && currentPiece.getTeamColor() == ChessGame.TeamColor.WHITE) {
+            pawnPossibles.add(new ChessMove(myPosition, positionBooster(top), null));
+            //top = new ChessPosition(top.getRow() + 1, top.getColumn());
+        } else
+
+        if (checkEnemy(board, topLeft, currentPiece)) {
+            pawnPossibles.add(new ChessMove(myPosition, positionBooster(topLeft), null));
+        }
+
+        return pawnPossibles;
     }
 
     /**
@@ -77,9 +129,13 @@ public class ChessPiece {
         ChessPosition topLeft = new ChessPosition(row + 1, col - 1);
         ChessPosition bottomRight = new ChessPosition(row - 1, col + 1);
         ChessPosition bottomLeft = new ChessPosition(row - 1, col - 1);
-        if (currentPiece.type == PieceType.BISHOP) {
+        ChessPosition top = new ChessPosition(row + 1, col);
+        ChessPosition bottom = new ChessPosition(row - 1, col);
+        ChessPosition left = new ChessPosition(row, col - 1);
+        ChessPosition right = new ChessPosition(row, col + 1);
+
+        if (currentPiece.getPieceType() == PieceType.BISHOP) {
             Collection<ChessMove> Test = new HashSet<>();
-            //Test.add(new ChessMove(new ChessPosition(5, 4), new ChessPosition(6, 5), null));
             while (topLeft.getColumn() >= 0 && topLeft.getColumn() <= 7 && topLeft.getRow() >= 0 && topLeft.getRow() <= 7 && board.getPiece(topLeft) == null) {
                 Test.add(new ChessMove(new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn() + 1), new ChessPosition(topLeft.getRow() + 1, topLeft.getColumn() + 1), null));
                 topLeft = new ChessPosition(topLeft.getRow() + 1, topLeft.getColumn() - 1);
@@ -96,15 +152,20 @@ public class ChessPiece {
                 Test.add(new ChessMove(myPosition, bottomRight, null));
                 bottomRight = new ChessPosition(bottomRight.getRow() - 1, bottomRight.getColumn() + 1);
             }
-//            int count = 0;
-//            for (ChessMove x : Test) {
-//                count += 1;
-//            }
-            //System.out.println(count);
+            int count = 0;
+            for (ChessMove x : Test) {
+                count += 1;
+            }
+            System.out.println(count);
             //Test.add(new ChessMove(new ChessPosition(6, 5), new ChessPosition(2,2), null));
             //Test.add(new ChessMove(new ChessPosition(3, 3), new ChessPosition(4,4), null));
             return Test;
         }
+
+        if (currentPiece.getPieceType() == PieceType.PAWN) {
+            return pawnMoves(board, myPosition);
+        }
+
         Collection<ChessMove> fail = new HashSet<>();
         return fail;
     }
