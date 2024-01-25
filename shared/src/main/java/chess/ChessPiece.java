@@ -99,17 +99,6 @@ public class ChessPiece {
         return false;
     }
 
-//    public Collection<ChessMove> possibleDiagonal(ChessBoard board, ChessPosition position, ChessPosition currentPosition, ChessPiece currentPiece) {
-//        Collection<ChessMove> diagonalMoves = new HashSet<>();
-//        // top left incrementer
-//
-//        while (checkSpot(board, position)) {
-//            diagonalMoves.add(new ChessMove(currentPosition, positionBooster(position), null));
-//        }
-//
-//        return diagonalMoves;
-//    }
-
     public Collection<ChessMove> bishopMoves(ChessBoard board, ChessPosition myPosition, ChessPosition topRight, ChessPosition bottomRight, ChessPosition topLeft, ChessPosition bottomLeft) {
         Collection<ChessMove> bishopPossibles = new HashSet<>();
         ChessPiece currentPiece = board.getPiece(myPosition);
@@ -334,25 +323,25 @@ public class ChessPiece {
             knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
         }
         if (checkSpotAvail(board, leftUpUp, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, leftUpUp, null));
         }
         if (checkSpotAvail(board, rightUpUp, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, rightUpUp, null));
         }
         if (checkSpotAvail(board, rightUpLow, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, rightUpLow, null));
         }
         if (checkSpotAvail(board, rightDownUp, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, rightDownUp, null));
         }
         if (checkSpotAvail(board, rightDownDown, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, rightDownDown, null));
         }
         if (checkSpotAvail(board, leftDownDown, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, leftDownDown, null));
         }
         if (checkSpotAvail(board, leftDownUp, currentPiece)) {
-            knightPossibles.add(new ChessMove(myPosition, leftUpLow, null));
+            knightPossibles.add(new ChessMove(myPosition, leftDownUp, null));
         }
 
         return knightPossibles;
