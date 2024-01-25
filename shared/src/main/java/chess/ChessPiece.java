@@ -24,16 +24,12 @@ public class ChessPiece {
         this.type = type;
     }
 
-    /**
-     * The various different chess piece options
-     */
-    public enum PieceType {
-        KING,
-        QUEEN,
-        BISHOP,
-        KNIGHT,
-        ROOK,
-        PAWN
+    @Override
+    public String toString() {
+        return "ChessPiece{" +
+                "pieceColor=" + pieceColor +
+                ", type=" + type +
+                '}';
     }
 
     @Override
@@ -48,6 +44,17 @@ public class ChessPiece {
         return Objects.hash(pieceColor, type);
     }
 
+    /**
+     * The various different chess piece options
+     */
+    public enum PieceType {
+        KING,
+        QUEEN,
+        BISHOP,
+        KNIGHT,
+        ROOK,
+        PAWN
+    }
 
     /**
      * @return Which team this chess piece belongs to
