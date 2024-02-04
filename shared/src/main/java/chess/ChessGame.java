@@ -10,10 +10,30 @@ import java.util.Objects;
  * signature of the existing methods.
  */
 public class ChessGame {
-
+    private ChessBoard currentBoard = new ChessBoard();
     private TeamColor startingColor = TeamColor.WHITE;
     public ChessGame() {
 
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ChessGame chessGame)) return false;
+        return Objects.deepEquals(currentBoard, chessGame.currentBoard) && startingColor == chessGame.startingColor;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(currentBoard, startingColor);
+    }
+
+    @Override
+    public String toString() {
+        return "ChessGame{" +
+                "currentBoard=" + currentBoard +
+                ", startingColor=" + startingColor +
+                '}';
     }
 
     /**
@@ -68,7 +88,44 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        //ChessPiece king;
+        int row = 0;
+        int col = 0;
+
+        // Finds where the king of the desired team color is
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                ChessPiece piece = currentBoard.getPiece(new ChessPosition(i, j));
+                System.out.println(piece);
+                if (piece != null) {
+                    if (piece.getPieceType() == ChessPiece.PieceType.KING) {
+                        if (piece.getTeamColor() == teamColor) {
+                            //king = currentBoard.getPiece(new ChessPosition(i, j));
+                            row = i;
+                            col = j;
+                        }
+                    }
+                }
+            }
+        }
+        ChessPosition kingPosition = new ChessPosition(row, col);
+        System.out.println(kingPosition);
+
+        // Checks the end positions of all enemy pieces
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                ChessPiece pieceInQ = currentBoard.getPiece(new ChessPosition(i, j));
+                if (pieceInQ != null && pieceInQ.getTeamColor() != teamColor) {
+                    Collection<ChessMove> pieceInQMoves = pieceInQ.pieceMoves(currentBoard, new ChessPosition(i, j));
+                    for (ChessMove x : pieceInQMoves) {
+                        if (x.getEndPosition() == kingPosition) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -98,31 +155,7 @@ public class ChessGame {
      * @param board the new board to use
      */
     public void setBoard(ChessBoard board) {
-        // Setting all pawns
-        for (int i = 0; i < 8; i++) {
-            board.addPiece(new ChessPosition(1, i), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.PAWN));
-            board.addPiece(new ChessPosition(6, i), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.PAWN));
-        }
-        // Setting White pieces
-        board.addPiece(new ChessPosition(0, 0), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.ROOK));
-        board.addPiece(new ChessPosition(0, 1), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.KNIGHT));
-        board.addPiece(new ChessPosition(0, 2), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.BISHOP));
-        board.addPiece(new ChessPosition(0, 3), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.KING));
-        board.addPiece(new ChessPosition(0, 4), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.QUEEN));
-        board.addPiece(new ChessPosition(0, 5), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.BISHOP));
-        board.addPiece(new ChessPosition(0, 6), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.KNIGHT));
-        board.addPiece(new ChessPosition(0, 7), new ChessPiece(TeamColor.WHITE, ChessPiece.PieceType.ROOK));
-
-        // Setting Black pieces
-        board.addPiece(new ChessPosition(7, 0), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.ROOK));
-        board.addPiece(new ChessPosition(7, 1), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.KNIGHT));
-        board.addPiece(new ChessPosition(7, 2), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.BISHOP));
-        board.addPiece(new ChessPosition(7, 3), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.KING));
-        board.addPiece(new ChessPosition(7, 4), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.QUEEN));
-        board.addPiece(new ChessPosition(7, 5), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.BISHOP));
-        board.addPiece(new ChessPosition(7, 6), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.KNIGHT));
-        board.addPiece(new ChessPosition(7, 7), new ChessPiece(TeamColor.BLACK, ChessPiece.PieceType.ROOK));
-
+        currentBoard = board;
     }
 
     /**
