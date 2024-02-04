@@ -96,11 +96,9 @@ public class ChessGame {
         for (int i = 1; i < 9; i++) {
             for (int j = 1; j < 9; j++) {
                 ChessPiece piece = currentBoard.getPiece(new ChessPosition(i, j));
-                System.out.println(piece);
                 if (piece != null) {
                     if (piece.getPieceType() == ChessPiece.PieceType.KING) {
                         if (piece.getTeamColor() == teamColor) {
-                            //king = currentBoard.getPiece(new ChessPosition(i, j));
                             row = i;
                             col = j;
                         }
@@ -109,16 +107,17 @@ public class ChessGame {
             }
         }
         ChessPosition kingPosition = new ChessPosition(row, col);
+        System.out.print("King pos: ");
         System.out.println(kingPosition);
 
-        // Checks the end positions of all enemy pieces
+        // Checks the end positions of all enemy pieces, returns true if one matches king position
         for (int i = 1; i < 9; i++) {
             for (int j = 1; j < 9; j++) {
                 ChessPiece pieceInQ = currentBoard.getPiece(new ChessPosition(i, j));
                 if (pieceInQ != null && pieceInQ.getTeamColor() != teamColor) {
                     Collection<ChessMove> pieceInQMoves = pieceInQ.pieceMoves(currentBoard, new ChessPosition(i, j));
                     for (ChessMove x : pieceInQMoves) {
-                        if (x.getEndPosition() == kingPosition) {
+                        if (x.getEndPosition().getRow() == kingPosition.getRow() && x.getEndPosition().getColumn() == kingPosition.getColumn()) {
                             return true;
                         }
                     }
@@ -164,6 +163,6 @@ public class ChessGame {
      * @return the chessboard
      */
     public ChessBoard getBoard() {
-        throw new RuntimeException("Not implemented");
+        return currentBoard;
     }
 }
