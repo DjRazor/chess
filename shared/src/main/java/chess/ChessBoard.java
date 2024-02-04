@@ -13,6 +13,21 @@ public class ChessBoard {
     private ChessPiece[][] battleField = new ChessPiece[9][9];
     public ChessBoard() {}
 
+    // Copy constructor
+    public ChessBoard(ChessBoard other) {
+        battleField = new ChessPiece[9][9];
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                battleField[i][j] = other.battleField[i][j];
+            }
+        }
+    }
+
+    @Override
+    public ChessBoard clone() {
+        return new ChessBoard(this);
+    }
+
     @Override
     public String toString() {
         return "ChessBoard{" +
@@ -51,6 +66,11 @@ public class ChessBoard {
      */
     public ChessPiece getPiece(ChessPosition position) {
         return battleField[position.getRow()][position.getColumn()];
+    }
+
+
+    public void resetPosition(ChessPosition position) {
+        battleField[position.getRow()][position.getColumn()] = null;
     }
 
     /**

@@ -1,6 +1,7 @@
 package chess;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Objects;
  */
 public class ChessGame {
     private ChessBoard currentBoard = new ChessBoard();
-    private TeamColor startingColor = TeamColor.WHITE;
+    private TeamColor currentColor = TeamColor.WHITE;
     public ChessGame() {
 
     }
@@ -20,19 +21,19 @@ public class ChessGame {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof ChessGame chessGame)) return false;
-        return Objects.deepEquals(currentBoard, chessGame.currentBoard) && startingColor == chessGame.startingColor;
+        return Objects.deepEquals(currentBoard, chessGame.currentBoard) && currentColor == chessGame.currentColor;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentBoard, startingColor);
+        return Objects.hash(currentBoard, currentColor);
     }
 
     @Override
     public String toString() {
         return "ChessGame{" +
                 "currentBoard=" + currentBoard +
-                ", startingColor=" + startingColor +
+                ", currentColor=" + currentColor +
                 '}';
     }
 
@@ -40,7 +41,7 @@ public class ChessGame {
      * @return Which team's turn it is
      */
     public TeamColor getTeamTurn() {
-        return startingColor;
+        return currentColor;
     }
 
     /**
@@ -49,7 +50,7 @@ public class ChessGame {
      * @param team the team whose turn it is
      */
     public void setTeamTurn(TeamColor team) {
-        startingColor = team;
+        currentColor = team;
     }
 
     /**
@@ -68,7 +69,17 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        throw new RuntimeException("Not implemented");
+
+        if (startPosition == null) {
+            return null;
+        }
+        ChessPiece currentPiece = currentBoard.getPiece(startPosition);
+        TeamColor currentColor = currentPiece.getTeamColor();
+        Collection<ChessMove> possibleMoves = currentPiece.pieceMoves(currentBoard, startPosition);
+        
+
+
+        return possibleMoves;
     }
 
     /**
@@ -78,7 +89,24 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
-        throw new RuntimeException("Not implemented");
+        ChessPiece currentPiece = currentBoard.getPiece(move.getStartPosition());
+
+        // Checks if it is the current piece's color's turn
+        if (currentColor == currentBoard.getPiece(move.getStartPosition()).getTeamColor()) {
+            currentBoard.addPiece(move.getEndPosition(), currentPiece);
+            currentBoard.resetPosition(move.getStartPosition());
+        } else {
+            throw new InvalidMoveException("Invalid move");
+        }
+
+        // Sets TeamTurn to opposing color
+//        if (currentColor == TeamColor.WHITE) {
+//            setTeamTurn(TeamColor.BLACK);
+//        } else {
+//            setTeamTurn(TeamColor.WHITE);
+//        }
+
+
     }
 
     /**
@@ -107,8 +135,6 @@ public class ChessGame {
             }
         }
         ChessPosition kingPosition = new ChessPosition(row, col);
-        System.out.print("King pos: ");
-        System.out.println(kingPosition);
 
         // Checks the end positions of all enemy pieces, returns true if one matches king position
         for (int i = 1; i < 9; i++) {
