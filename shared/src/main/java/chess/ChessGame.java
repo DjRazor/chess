@@ -13,6 +13,7 @@ import java.util.Objects;
 public class ChessGame {
     private ChessBoard currentBoard = new ChessBoard();
     private TeamColor currentColor = TeamColor.WHITE;
+    private ChessBoard testingBoard = currentBoard.clone();
     public ChessGame() {
 
     }
@@ -69,14 +70,22 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-
+        // Re-initialize testingBoard
+        // testingBoard = currentBoard.clone();
         if (startPosition == null) {
             return null;
         }
         ChessPiece currentPiece = currentBoard.getPiece(startPosition);
-        TeamColor currentColor = currentPiece.getTeamColor();
+        TeamColor currentPieceColor = currentPiece.getTeamColor();
         Collection<ChessMove> possibleMoves = currentPiece.pieceMoves(currentBoard, startPosition);
-        
+
+        for (ChessMove x : possibleMoves) {
+            try {
+                makeMove(x);
+            } catch (InvalidMoveException e) {
+                possibleMoves.remove(x);
+            }
+        }
 
 
         return possibleMoves;
@@ -89,22 +98,29 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
+        testingBoard = currentBoard.clone();
         ChessPiece currentPiece = currentBoard.getPiece(move.getStartPosition());
 
         // Checks if it is the current piece's color's turn
         if (currentColor == currentBoard.getPiece(move.getStartPosition()).getTeamColor()) {
-            currentBoard.addPiece(move.getEndPosition(), currentPiece);
-            currentBoard.resetPosition(move.getStartPosition());
+            testingBoard.addPiece(move.getEndPosition(), currentPiece);
+            testingBoard.resetPosition(move.getStartPosition());
+            if (isInCheck(currentColor)) {
+                throw new InvalidMoveException("Invalid move");
+            } else {
+                currentBoard.addPiece(move.getEndPosition(), currentPiece);
+                currentBoard.resetPosition(move.getStartPosition());
+                if (currentColor == TeamColor.WHITE) {
+                    setTeamTurn(TeamColor.BLACK);
+                } else {
+                    setTeamTurn(TeamColor.WHITE);
+                }
+            }
         } else {
             throw new InvalidMoveException("Invalid move");
         }
 
         // Sets TeamTurn to opposing color
-//        if (currentColor == TeamColor.WHITE) {
-//            setTeamTurn(TeamColor.BLACK);
-//        } else {
-//            setTeamTurn(TeamColor.WHITE);
-//        }
 
 
     }
@@ -117,13 +133,14 @@ public class ChessGame {
      */
     public boolean isInCheck(TeamColor teamColor) {
         //ChessPiece king;
+        testingBoard = currentBoard.clone();
         int row = 0;
         int col = 0;
 
         // Finds where the king of the desired team color is
         for (int i = 1; i < 9; i++) {
             for (int j = 1; j < 9; j++) {
-                ChessPiece piece = currentBoard.getPiece(new ChessPosition(i, j));
+                ChessPiece piece = testingBoard.getPiece(new ChessPosition(i, j));
                 if (piece != null) {
                     if (piece.getPieceType() == ChessPiece.PieceType.KING) {
                         if (piece.getTeamColor() == teamColor) {
@@ -139,9 +156,9 @@ public class ChessGame {
         // Checks the end positions of all enemy pieces, returns true if one matches king position
         for (int i = 1; i < 9; i++) {
             for (int j = 1; j < 9; j++) {
-                ChessPiece pieceInQ = currentBoard.getPiece(new ChessPosition(i, j));
+                ChessPiece pieceInQ = testingBoard.getPiece(new ChessPosition(i, j));
                 if (pieceInQ != null && pieceInQ.getTeamColor() != teamColor) {
-                    Collection<ChessMove> pieceInQMoves = pieceInQ.pieceMoves(currentBoard, new ChessPosition(i, j));
+                    Collection<ChessMove> pieceInQMoves = pieceInQ.pieceMoves(testingBoard, new ChessPosition(i, j));
                     for (ChessMove x : pieceInQMoves) {
                         if (x.getEndPosition().getRow() == kingPosition.getRow() && x.getEndPosition().getColumn() == kingPosition.getColumn()) {
                             return true;
