@@ -70,8 +70,7 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        // Re-initialize testingBoard
-        // testingBoard = currentBoard.clone();
+        //testingBoard = currentBoard.clone();
         if (startPosition == null) {
             return null;
         }
@@ -100,12 +99,20 @@ public class ChessGame {
     public void makeMove(ChessMove move) throws InvalidMoveException {
         testingBoard = currentBoard.clone();
         ChessPiece currentPiece = currentBoard.getPiece(move.getStartPosition());
+        Collection<ChessMove> plausibleMoves = currentPiece.pieceMoves(currentBoard, move.getStartPosition());
+
+        // If the move requested isn't a possible option, throw exception
+        if (!plausibleMoves.contains(move)) {
+            throw new InvalidMoveException("Invalid move");
+        }
 
         // Checks if it is the current piece's color's turn
-        if (currentColor == currentBoard.getPiece(move.getStartPosition()).getTeamColor()) {
+        if (currentColor == testingBoard.getPiece(move.getStartPosition()).getTeamColor()) {
             testingBoard.addPiece(move.getEndPosition(), currentPiece);
             testingBoard.resetPosition(move.getStartPosition());
             if (isInCheck(currentColor)) {
+                testingBoard.addPiece(move.getStartPosition(), currentPiece);
+                testingBoard.resetPosition(move.getEndPosition());
                 throw new InvalidMoveException("Invalid move");
             } else {
                 currentBoard.addPiece(move.getEndPosition(), currentPiece);
@@ -117,7 +124,7 @@ public class ChessGame {
                 }
             }
         } else {
-            throw new InvalidMoveException("Invalid move");
+            throw new InvalidMoveException("Other team's turn");
         }
 
         // Sets TeamTurn to opposing color
@@ -132,8 +139,6 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        //ChessPiece king;
-        testingBoard = currentBoard.clone();
         int row = 0;
         int col = 0;
 
