@@ -13,6 +13,7 @@ public class ChessBoard {
     private ChessPiece[][] battleField = new ChessPiece[9][9];
     public ChessBoard() {}
 
+    /*
     // Copy constructor
     public ChessBoard(ChessBoard other) {
         battleField = new ChessPiece[9][9];
@@ -27,6 +28,8 @@ public class ChessBoard {
     public ChessBoard clone() {
         return new ChessBoard(this);
     }
+    /
+     */
 
     @Override
     public String toString() {
