@@ -69,24 +69,25 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        //currentBoard = currentBoard.clone();
         if (startPosition == null) {
             return null;
         }
+        ChessBoard testingBoard;
         ChessPiece currentPiece = currentBoard.getPiece(startPosition);
-        TeamColor currentPieceColor = currentPiece.getTeamColor();
         Collection<ChessMove> possibleMoves = currentPiece.pieceMoves(currentBoard, startPosition);
+        Collection<ChessMove> validMoves = new HashSet<>();
 
         for (ChessMove x : possibleMoves) {
-            try {
-                makeMove(x);
-            } catch (InvalidMoveException e) {
-                possibleMoves.remove(x);
+            testingBoard = currentBoard.clone();
+            currentBoard.addPiece(x.getEndPosition(), currentPiece);
+            currentBoard.resetPosition(x.getStartPosition());
+            if (!isInCheck(currentPiece.getTeamColor())) {
+                validMoves.add(x);
             }
+            currentBoard = testingBoard;
         }
 
-
-        return possibleMoves;
+        return validMoves;
     }
 
     /**
@@ -125,20 +126,17 @@ public class ChessGame {
                     currentBoard.resetPosition(move.getEndPosition());
                     currentBoard.addPiece(move.getEndPosition(), new ChessPiece(TeamColor.BLACK, promotionPiece));
                 }
+
+                // Sets TeamTurn to opposing color
                 if (currentColor == TeamColor.WHITE) {
                     setTeamTurn(TeamColor.BLACK);
                 } else {
                     setTeamTurn(TeamColor.WHITE);
                 }
-
-
             }
         } else {
             throw new InvalidMoveException("Other team's turn");
         }
-
-        // Sets TeamTurn to opposing color
-
 
     }
 
