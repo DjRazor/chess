@@ -66,10 +66,6 @@ public class ChessPiece {
     }
 
     public boolean checkSpot(ChessBoard board, ChessPosition position) {
-//        System.out.print("Row val: ");
-//        System.out.println(position.getRow());
-//        System.out.print("Col val: ");
-//        System.out.println(position.getColumn());
         return position.getRow() >= 1 && position.getRow() <= 8 && position.getColumn() >= 1 && position.getColumn() <= 8 && board.getPiece(position) == null;
     }
     public boolean checkEnemy(ChessBoard board, ChessPosition position, ChessPiece currentPiece) {

@@ -98,6 +98,7 @@ public class ChessGame {
     public void makeMove(ChessMove move) throws InvalidMoveException {
         ChessPiece currentPiece = currentBoard.getPiece(move.getStartPosition());
         Collection<ChessMove> plausibleMoves = currentPiece.pieceMoves(currentBoard, move.getStartPosition());
+        ChessPiece.PieceType promotionPiece = move.getPromotionPiece();
 
         // If the move requested isn't a possible option, throw exception
         if (!plausibleMoves.contains(move)) {
@@ -113,11 +114,24 @@ public class ChessGame {
                 currentBoard.resetPosition(move.getEndPosition());
                 throw new InvalidMoveException("Invalid move");
             } else {
+                // Determines if pawn promotion is needed
+                if (currentPiece.getPieceType() == ChessPiece.PieceType.PAWN && currentColor == TeamColor.WHITE &&
+                        move.getEndPosition().getRow() == 8) {
+                    currentBoard.resetPosition(move.getEndPosition());
+                    currentBoard.addPiece(move.getEndPosition(), new ChessPiece(TeamColor.WHITE, promotionPiece));
+                }
+                if (currentPiece.getPieceType() == ChessPiece.PieceType.PAWN && currentColor == TeamColor.BLACK &&
+                        move.getEndPosition().getRow() == 1) {
+                    currentBoard.resetPosition(move.getEndPosition());
+                    currentBoard.addPiece(move.getEndPosition(), new ChessPiece(TeamColor.BLACK, promotionPiece));
+                }
                 if (currentColor == TeamColor.WHITE) {
                     setTeamTurn(TeamColor.BLACK);
                 } else {
                     setTeamTurn(TeamColor.WHITE);
                 }
+
+
             }
         } else {
             throw new InvalidMoveException("Other team's turn");
@@ -200,11 +214,12 @@ public class ChessGame {
                     Collection<ChessMove> pieceInQMoves = pieceInQ.pieceMoves(currentBoard, new ChessPosition(i, j));
                     for (ChessMove x : pieceInQMoves) {
                         ChessBoard testingBoard = currentBoard.clone();
-                        testingBoard.addPiece(x.getEndPosition(), pieceInQ);
-                        testingBoard.resetPosition(x.getStartPosition());
+                        currentBoard.addPiece(x.getEndPosition(), pieceInQ);
+                        currentBoard.resetPosition(x.getStartPosition());
                         if (!isInCheck(teamColor)) {
                             return false;
                         }
+                        currentBoard = testingBoard;
                     }
                 }
             }
