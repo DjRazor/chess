@@ -1,12 +1,15 @@
 package server;
 
+import chess.ChessGame;
 import com.google.gson.JsonObject;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 import spark.*;
 import com.google.gson.Gson;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 public class Server {
@@ -15,7 +18,8 @@ public class Server {
     }
     private HashSet<UserData> users = new HashSet<>();
     private HashSet<String> usersList = new HashSet<>();
-    private HashSet<String> games = new HashSet<>();
+    private HashSet<GameData> games = new HashSet<>();
+    private HashSet<Integer> gameIDs = new HashSet<>();
     private HashSet<AuthData> authorized = new HashSet<>();
     private String authToken = null;
 
@@ -42,7 +46,54 @@ public class Server {
     }
 
     private Object createGame(Request req, Response res) {
-        return listGames(req, res);
+        String gameName = null;
+        boolean gameIDTaken = true;
+        boolean authUser = false;
+        int gameID = 0;
+
+        // Checks authorization
+        String authHeadToken = req.headers("authorization");
+        for (AuthData auth : authorized) {
+            if (auth.authToken().equals(authHeadToken)) {
+                authUser = true;
+                break;
+            }
+        }
+        if (!authUser) {
+            res.status(401);
+            JsonObject unauth = new JsonObject();
+            unauth.addProperty("message", "Error: unauthorized");
+            return unauth;
+        }
+
+        // Checks if randomly generated gameID is taken already
+        while (gameIDTaken) {
+            gameID = new Random().nextInt(9000) + 1000;
+            if (!gameIDs.contains(gameID)) {
+                gameIDs.add(gameID);
+                gameIDTaken = false;
+            }
+        }
+
+        // Gets gameName, throws error if bad request
+        JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
+        if (parsedJson.has("gameName")) {
+            gameName = parsedJson.get("gameName").getAsString();
+        } else {
+            res.status(400);
+            JsonObject badReq = new JsonObject();
+            badReq.addProperty("message", "Error: bad request");
+            return badReq;
+        }
+
+        ChessGame chessGame = new ChessGame();
+        GameData game = new GameData(gameID, null, null, gameName, chessGame);
+        games.add(game);
+
+        JsonObject returnObj = new JsonObject();
+        returnObj.addProperty("gameID", gameID);
+        res.status(200);
+        return returnObj;
     }
 
     private Object listGames(Request req, Response res) {
@@ -102,9 +153,15 @@ public class Server {
     }
 
     private Object clearApp(Request req, Response res) {
-        System.out.print("Cleared");
+        // Resets all private variables
         users = new HashSet<>();
-        return listUsers(req, res);
+        games = new HashSet<>();
+        usersList = new HashSet<>();
+        authorized = new HashSet<>();
+        authToken = null;
+
+        res.status(200);
+        return new JsonObject();
     }
 
     private Object createUser(Request req, Response res) {
@@ -149,19 +206,6 @@ public class Server {
     private Object listUsers(Request req, Response res) {
         res.type("application/json");
         return new Gson().toJson(Map.of("name", users));
-    }
-
-    private Object deleteUser(Request req, Response res) {
-        users.remove(req.params(":name"));
-        return listUsers(req, res);
-    }
-
-    private static <T> T getBody(Request request, Class<T> clazz) {
-        var body = new Gson().fromJson(request.body(), clazz);
-        if (body == null) {
-            throw new RuntimeException("missing required body");
-        }
-        return body;
     }
 
     public void stop() {
