@@ -51,7 +51,24 @@ public class Server {
     }
 
     private Object logout(Request req, Response res) {
-        return listUsers(req,res);
+        String authHeadToken = req.headers("authorization");
+        String currentUser = null;
+        for (AuthData auth : authorized) {
+            if (auth.authToken().equals(authHeadToken)) {
+                currentUser = auth.username();
+                usersList.remove(currentUser);
+                for (UserData user : users) {
+                    if (user.username().equals(currentUser)) {
+                        res.status(200);
+                        return new JsonObject();
+                    }
+                }
+            }
+        }
+        res.status(401);
+        JsonObject unauth = new JsonObject();
+        unauth.addProperty("message", "Error: unauthorized");
+        return unauth;
     }
 
     private Object login(Request req, Response res) {
@@ -64,7 +81,12 @@ public class Server {
             password = parsedJson.get("password").getAsString();
             for (UserData userData : users) {
                 if (userData.username().equals(username) && userData.password().equals(password)) {
+                    // Creates AuthData instance
                     authToken = UUID.randomUUID().toString();
+                    AuthData auth = new AuthData(authToken, username);
+                    authorized.add(auth);
+
+                    // Success response
                     JsonObject returnObj = new JsonObject();
                     returnObj.addProperty("username", username);
                     returnObj.addProperty("authToken", authToken);
