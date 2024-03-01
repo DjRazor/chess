@@ -41,29 +41,98 @@ public class Server {
         return Spark.port();
     }
 
-    private Object joinGame(Request req, Response res) {
-        return listGames(req, res);
-    }
-
-    private Object createGame(Request req, Response res) {
-        String gameName = null;
-        boolean gameIDTaken = true;
+    private Object validateAuth(String authToken) {
         boolean authUser = false;
-        int gameID = 0;
-
-        // Checks authorization
-        String authHeadToken = req.headers("authorization");
         for (AuthData auth : authorized) {
-            if (auth.authToken().equals(authHeadToken)) {
+            if (auth.authToken().equals(authToken)) {
                 authUser = true;
                 break;
             }
         }
         if (!authUser) {
-            res.status(401);
             JsonObject unauth = new JsonObject();
             unauth.addProperty("message", "Error: unauthorized");
             return unauth;
+        }
+        return null;
+    }
+
+    private Object joinGame(Request req, Response res) {
+        String authHeadToken = req.headers("authorization");
+        Object valid = validateAuth(authHeadToken);
+        if (valid != null) {
+            res.status(401);
+            return valid;
+        }
+
+        // Validate request elements
+        JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
+        if (!parsedJson.has("playerColor")
+        || !parsedJson.has("gameID")) {
+            res.status(400);
+            JsonObject badReq = new JsonObject();
+            badReq.addProperty("message", "Error: bad request");
+            return badReq;
+        }
+
+        // Gets elements from body
+        String playerColor = parsedJson.get("playerColor").getAsString();
+        int gameID = parsedJson.get("gameID").getAsInt();
+
+        // Validates that gameID exists
+        if (!gameIDs.contains(gameID)) {
+            JsonObject invalid = new JsonObject();
+            invalid.addProperty("message", "Error: Invalid gameID");
+            return invalid;
+        }
+
+        // Gets username via authToken
+        String currentUser = null;
+        for (AuthData authData : authorized) {
+            if (authData.authToken().equals(authHeadToken)) {
+                currentUser = authData.username();
+            }
+        }
+
+        // Finds needed GameData element
+        GameData currentGame;
+        for (GameData gameData : games) {
+            if (gameData.gameID() == gameID) {
+                if (playerColor.equals("WHITE") && gameData.whiteUsername() == null) {
+                    currentGame = new GameData(gameID, currentUser, gameData.blackUsername(), gameData.gameName(), gameData.game());
+                }
+                else if (playerColor.equals("BLACK") && gameData.blackUsername() == null){
+                    currentGame = new GameData(gameID, gameData.whiteUsername(), currentUser, gameData.gameName(), gameData.game());
+                }
+                else {
+                    JsonObject taken = new JsonObject();
+                    taken.addProperty("message", "Error: already taken");
+                    res.status(403);
+                    return taken;
+                }
+                games.remove(gameData);
+                games.add(currentGame);
+                res.status(200);
+                return new JsonObject();
+            }
+        }
+        res.status(500);
+        JsonObject failed = new JsonObject();
+        failed.addProperty("message", "Error: description");
+        return failed;
+    }
+
+    private Object createGame(Request req, Response res) {
+        String gameName;
+        boolean gameIDTaken = true;
+        int gameID = 0;
+
+        // Checks authorization
+        String authHeadToken = req.headers("authorization");
+        Object valid = validateAuth(authHeadToken);
+        if (valid != null) {
+            res.status(401);
+            return valid;
         }
 
         // Checks if randomly generated gameID is taken already
@@ -97,8 +166,25 @@ public class Server {
     }
 
     private Object listGames(Request req, Response res) {
+        String authHeadToken = req.headers("authorization");
+        Object valid = validateAuth(authHeadToken);
+
+        if (valid != null) {
+            res.status(401);
+            return valid;
+        }
+
         res.type("application/json");
-        return new Gson().toJson(Map.of("games", games));
+        HashSet<JsonObject> altGames = new HashSet<>();
+        for (GameData gameData : games) {
+            JsonObject altGame = new JsonObject();
+            altGame.addProperty("gameID", gameData.gameID());
+            altGame.addProperty("whiteUsername", gameData.whiteUsername());
+            altGame.addProperty("blackUsername", gameData.blackUsername());
+            altGame.addProperty("gameName", gameData.gameName());
+            altGames.add(altGame);
+        }
+        return new Gson().toJson(Map.of("games", altGames));
     }
 
     private Object logout(Request req, Response res) {
@@ -124,8 +210,8 @@ public class Server {
 
     private Object login(Request req, Response res) {
         JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
-        String username = null;
-        String password = null;
+        String username;
+        String password;
         if (parsedJson.has("username")
         && parsedJson.has("password")) {
             username = parsedJson.get("username").getAsString();
@@ -156,6 +242,7 @@ public class Server {
         // Resets all private variables
         users = new HashSet<>();
         games = new HashSet<>();
+        gameIDs = new HashSet<>();
         usersList = new HashSet<>();
         authorized = new HashSet<>();
         authToken = null;
@@ -201,11 +288,6 @@ public class Server {
         returnObj.addProperty("authToken", authToken);
 
         return returnObj;
-    }
-
-    private Object listUsers(Request req, Response res) {
-        res.type("application/json");
-        return new Gson().toJson(Map.of("name", users));
     }
 
     public void stop() {
