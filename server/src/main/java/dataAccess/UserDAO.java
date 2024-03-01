@@ -1,7 +1,9 @@
 package dataAccess;
 
+import model.UserData;
+
 public class UserDAO {
-    void createUser() throws DataAccessException {
+    void createUser(UserData user) throws DataAccessException {
 
     }
 
