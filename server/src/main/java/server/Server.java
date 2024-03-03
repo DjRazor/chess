@@ -2,6 +2,7 @@ package server;
 
 import chess.ChessGame;
 import com.google.gson.JsonObject;
+import dataAccess.DataAccessException;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
@@ -21,6 +22,7 @@ public class Server {
     private HashSet<GameData> games = new HashSet<>();
     private HashSet<Integer> gameIDs = new HashSet<>();
     private HashSet<AuthData> authorized = new HashSet<>();
+    private HashSet<String> watchers = new HashSet<>();
     private String authToken = null;
 
     public int run(int desiredPort) {
@@ -67,24 +69,31 @@ public class Server {
 
         // Validate request elements
         JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
-        if (!parsedJson.has("playerColor")
-        || !parsedJson.has("gameID")) {
+        if (!parsedJson.has("gameID")) {
             res.status(400);
             JsonObject badReq = new JsonObject();
             badReq.addProperty("message", "Error: bad request");
             return badReq;
         }
 
-        // Gets elements from body
-        String playerColor = parsedJson.get("playerColor").getAsString();
+        // Gets gameID from request
         int gameID = parsedJson.get("gameID").getAsInt();
 
         // Validates that gameID exists
         if (!gameIDs.contains(gameID)) {
             JsonObject invalid = new JsonObject();
-            invalid.addProperty("message", "Error: Invalid gameID");
+            res.status(400);
+            invalid.addProperty("message", "Error: bad request");
             return invalid;
         }
+
+        // If watcher, add to watchers; Create playerColor string if player
+        if (!parsedJson.has("playerColor")) {
+            watchers.add(authHeadToken);
+            res.status(200);
+            return new JsonObject();
+        }
+        String playerColor = parsedJson.get("playerColor").getAsString();
 
         // Gets username via authToken
         String currentUser = null;
@@ -189,11 +198,12 @@ public class Server {
 
     private Object logout(Request req, Response res) {
         String authHeadToken = req.headers("authorization");
-        String currentUser = null;
+        String currentUser;
         for (AuthData auth : authorized) {
             if (auth.authToken().equals(authHeadToken)) {
                 currentUser = auth.username();
                 usersList.remove(currentUser);
+                authorized.remove(auth);
                 for (UserData user : users) {
                     if (user.username().equals(currentUser)) {
                         res.status(200);
@@ -245,13 +255,14 @@ public class Server {
         gameIDs = new HashSet<>();
         usersList = new HashSet<>();
         authorized = new HashSet<>();
+        watchers = new HashSet<>();
         authToken = null;
 
         res.status(200);
         return new JsonObject();
     }
 
-    private Object createUser(Request req, Response res) {
+    private Object createUser(Request req, Response res) throws DataAccessException {
         // Gets username key's value
         JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
         if (!parsedJson.has("username")
@@ -259,7 +270,7 @@ public class Server {
         || !parsedJson.has("email")) {
             res.status(400);
             JsonObject badReq = new JsonObject();
-            badReq.addProperty("message", "bad request");
+            badReq.addProperty("message", "Error: bad request");
             return badReq;
         }
         String username = parsedJson.get("username").getAsString();
@@ -286,7 +297,7 @@ public class Server {
         JsonObject returnObj = new JsonObject();
         returnObj.addProperty("username", username);
         returnObj.addProperty("authToken", authToken);
-
+        res.status(200);
         return returnObj;
     }
 
