@@ -1,19 +1,5 @@
 package dataAccess;
 
-public class GameDAO {
-    void createGame() {
+public interface GameDAO {
 
-    }
-
-    void getGame() throws DataAccessException {
-
-    }
-
-    void listGames() throws DataAccessException {
-
-    }
-
-    void updateGame() throws DataAccessException {
-
-    }
 }

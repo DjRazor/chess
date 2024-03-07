@@ -1,15 +1,8 @@
 package dataAccess;
 
-public class AuthDAO {
-    void createAuth() throws DataAccessException {
+import model.AuthData;
 
-    }
-
-    void getAuth() throws DataAccessException {
-
-    }
-
-    void deleteAuth() throws DataAccessException {
-
-    }
+// Center for memory and sql DAO
+public interface AuthDAO {
+    void addAuthUser(AuthData authData);
 }

@@ -2,10 +2,15 @@ package server;
 
 import chess.ChessGame;
 import com.google.gson.JsonObject;
+import dataAccess.AuthDAO;
 import dataAccess.DataAccessException;
+import dataAccess.MemoryUserDAO;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
+import service.AuthService;
+import service.GameService;
+import service.UserService;
 import spark.*;
 import com.google.gson.Gson;
 import java.util.HashSet;
@@ -14,9 +19,7 @@ import java.util.Random;
 import java.util.UUID;
 
 public class Server {
-    public static void main(String[] args) {
-        new Server().run(8080);
-    }
+
     private HashSet<UserData> users = new HashSet<>();
     private HashSet<String> usersList = new HashSet<>();
     private HashSet<GameData> games = new HashSet<>();
@@ -24,6 +27,13 @@ public class Server {
     private HashSet<AuthData> authorized = new HashSet<>();
     private HashSet<String> watchers = new HashSet<>();
     private String authToken = null;
+    private AuthService authService = new AuthService();
+    private GameService gameService = new GameService();
+    private UserService userService = new UserService();
+
+    public static void main(String[] args) {
+        new Server().run(8080);
+    }
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
@@ -32,7 +42,7 @@ public class Server {
 
         // Register your endpoints and handle exceptions here.
         Spark.delete("/db", this::clearApp);
-        Spark.post("/user", this::createUser);
+        Spark.post("/user", this::register);
         Spark.post("/session", this::login);
         Spark.delete("/session", this::logout);
         Spark.get("/game", this::listGames);
@@ -218,34 +228,29 @@ public class Server {
         return unauth;
     }
 
-    private Object login(Request req, Response res) {
+    private Object login(Request req, Response res) throws DataAccessException {
         JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
-        String username;
-        String password;
         if (parsedJson.has("username")
         && parsedJson.has("password")) {
-            username = parsedJson.get("username").getAsString();
-            password = parsedJson.get("password").getAsString();
-            for (UserData userData : users) {
-                if (userData.username().equals(username) && userData.password().equals(password)) {
-                    // Creates AuthData instance
-                    authToken = UUID.randomUUID().toString();
-                    AuthData auth = new AuthData(authToken, username);
-                    authorized.add(auth);
-
-                    // Success response
-                    JsonObject returnObj = new JsonObject();
-                    returnObj.addProperty("username", username);
-                    returnObj.addProperty("authToken", authToken);
-                    res.status(200);
-                    return returnObj;
-                }
+            // Checks if username and password are valid
+            if (!userService.validateCreds(parsedJson.get("username").getAsString(),
+                    parsedJson.get("password").getAsString())) {
+                res.status(401);
+                return unauth();
             }
         }
-        res.status(401);
-        JsonObject unauth = new JsonObject();
-        unauth.addProperty("message", "Error: unauthorized");
-        return unauth;
+
+        // Logs in user with new authToken
+        UserData userData = new Gson().fromJson(req.body(), UserData.class);
+        AuthData authUser = userService.login(userData);
+        authService.addAuthUser(authUser);
+
+        // Success response
+        JsonObject returnObj = new JsonObject();
+        returnObj.addProperty("username", authUser.username());
+        returnObj.addProperty("authToken", authUser.authToken());
+        res.status(200);
+        return returnObj;
     }
 
     private Object clearApp(Request req, Response res) {
@@ -262,43 +267,55 @@ public class Server {
         return new JsonObject();
     }
 
-    private Object createUser(Request req, Response res) throws DataAccessException {
-        // Gets username key's value
-        JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);
-        if (!parsedJson.has("username")
-        || !parsedJson.has("password")
-        || !parsedJson.has("email")) {
+    private Object register(Request req, Response res) throws DataAccessException {
+        // Gets User info
+        JsonObject testObj = new Gson().fromJson(req.body(), JsonObject.class);
+
+        // Checks if all elements are valid
+        if (!testObj.has("username")
+        || !testObj.has("password")
+        || !testObj.has("email")) {
             res.status(400);
-            JsonObject badReq = new JsonObject();
-            badReq.addProperty("message", "Error: bad request");
-            return badReq;
+            return badReq();
         }
-        String username = parsedJson.get("username").getAsString();
-        String password = parsedJson.get("password").getAsString();
-        String email = parsedJson.get("email").getAsString();
 
-        // Adds user to users (checks if username already exits)
-        if (usersList.contains(username)) {
+        // Create UserData Object if all elements are valid
+        UserData parsedJson = new Gson().fromJson(req.body(), UserData.class);
+
+        // Checks if UserData username already exits
+        if (userService.userExists(parsedJson.username())) {
             res.status(403);
-            JsonObject taken = new JsonObject();
-            taken.addProperty("message", "Error: already taken");
-            return taken;
+            return taken();
         }
-        usersList.add(username);
-        UserData user = new UserData(username, password, email);
-        users.add(user);
 
-        // Creates AuthData instance to add to authorized set
-        authToken = UUID.randomUUID().toString();
-        AuthData userAuth = new AuthData(authToken, username);
-        authorized.add(userAuth);
+        // Adds user to existing users and authorized users
+        AuthData user = userService.register(parsedJson);
+        authService.addAuthUser(user);
 
-        // Creates JsonObject to return
+        // Returns username and authToken
         JsonObject returnObj = new JsonObject();
-        returnObj.addProperty("username", username);
-        returnObj.addProperty("authToken", authToken);
+        returnObj.addProperty("username", user.username());
+        returnObj.addProperty("authToken", user.authToken());
         res.status(200);
         return returnObj;
+    }
+
+    public Object badReq() {
+        JsonObject badRequest = new JsonObject();
+        badRequest.addProperty("message", "Error: bad request");
+        return badRequest;
+    }
+
+    public Object taken() {
+        JsonObject taken = new JsonObject();
+        taken.addProperty("message", "Error: already taken");
+        return taken;
+    }
+
+    public Object unauth() {
+        JsonObject unauth = new JsonObject();
+        unauth.addProperty("message", "Error: unauthorized");
+        return unauth;
     }
 
     public void stop() {
