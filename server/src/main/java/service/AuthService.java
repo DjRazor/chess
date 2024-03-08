@@ -12,6 +12,9 @@ import model.AuthData;
 public class AuthService {
     AuthDAO authDAO = new MemoryAuthDAO();
 
+    public boolean validateAuth(String authToken) throws DataAccessException {
+        return authDAO.validateAuth(authToken);
+    }
     public void addAuthUser(AuthData authData) throws DataAccessException {
         authDAO.addAuthUser(authData);
     }
