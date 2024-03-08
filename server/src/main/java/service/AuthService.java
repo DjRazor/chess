@@ -2,6 +2,7 @@ package service;
 
 
 import dataAccess.AuthDAO;
+import dataAccess.DataAccessException;
 import dataAccess.MemoryAuthDAO;
 import model.AuthData;
 
@@ -11,7 +12,17 @@ import model.AuthData;
 public class AuthService {
     AuthDAO authDAO = new MemoryAuthDAO();
 
-    public void addAuthUser(AuthData authData) {
+    public void addAuthUser(AuthData authData) throws DataAccessException {
         authDAO.addAuthUser(authData);
+    }
+
+    public boolean logout(String authToken) throws DataAccessException {
+        return authDAO.logout(authToken);
+    }
+    public String usernameForAuth(String authToken) throws DataAccessException {
+        return authDAO.usernameForAuth(authToken);
+    }
+    public void clear() throws DataAccessException {
+        authDAO.clear();
     }
 }

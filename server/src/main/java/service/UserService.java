@@ -15,13 +15,16 @@ public class UserService {
     public AuthData login(UserData user) throws DataAccessException {
         return userDAO.login(user);
     }
-    public void logout(UserData user) throws DataAccessException {
-
-    }
-    public boolean userExists(String username) {
+    public boolean userExists(String username) throws DataAccessException {
         return userDAO.userExists(username);
     }
-    public boolean validateCreds(String username, String password) {
+    public boolean validateCreds(String username, String password) throws DataAccessException {
         return userDAO.validateCreds(username, password);
+    }
+    public void removeUser(String username) throws DataAccessException {
+        userDAO.removeUser(username);
+    }
+    public void clear() throws DataAccessException {
+        userDAO.clear();
     }
 }

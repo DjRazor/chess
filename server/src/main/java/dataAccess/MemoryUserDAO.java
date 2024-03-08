@@ -13,7 +13,7 @@ public class MemoryUserDAO implements UserDAO {
        users.add(user);
        usersList.add(user.username());
        String authToken = UUID.randomUUID().toString();
-       return new AuthData(authToken,user.username());
+       return new AuthData(authToken, user.username());
     }
 
     public boolean userExists(String username) {
@@ -37,10 +37,13 @@ public class MemoryUserDAO implements UserDAO {
 
     public AuthData login(UserData user) {
         String authToken = UUID.randomUUID().toString();
-        return new AuthData(user.username(), authToken);
+        return new AuthData(authToken, user.username());
     }
-
-    public void logout(UserData user) {
-
+    public void removeUser(String username) {
+        usersList.remove(username);
+    }
+    public void clear() {
+        usersList = new HashSet<>();
+        users = new HashSet<>();
     }
 }
