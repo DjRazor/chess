@@ -55,12 +55,4 @@ public class MemoryGameDAO implements GameDAO {
     public void clear() {
         games = new HashSet<>();
     }
-
-    void getGame() throws DataAccessException {
-
-    }
-
-    void updateGame() throws DataAccessException {
-
-    }
 }

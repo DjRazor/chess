@@ -16,13 +16,6 @@ public class MemoryAuthDAO implements AuthDAO {
     }
 
     public void addAuthUser(AuthData authData) {
-        // Checks if user has a previous authToken; replaces it if so
-//        for (AuthData authUser : authorized) {
-//            if (authUser.username().equals(authData.username())
-//            || authUser.authToken().equals(authData.authToken())) {
-//                authorized.remove(authUser);
-//            }
-//        }
         authorized.add(authData);
     }
 
