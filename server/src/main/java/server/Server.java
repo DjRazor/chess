@@ -5,9 +5,11 @@ import com.google.gson.JsonObject;
 import dataAccess.AuthDAO;
 import dataAccess.DataAccessException;
 import dataAccess.MemoryUserDAO;
+import dataAccess.UserDAO;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import service.AuthService;
 import service.GameService;
 import service.UserService;
@@ -207,8 +209,13 @@ public class Server {
             return taken();
         }
 
+        // Encrypts password
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        UserData encryptUser = new UserData(parsedJson.username(),
+                encoder.encode(parsedJson.password()), parsedJson.email());
+
         // Adds user to existing users and authorized users
-        AuthData user = userService.register(parsedJson);
+        AuthData user = userService.register(encryptUser);
         authService.addAuthUser(user);
 
         // Returns username and authToken

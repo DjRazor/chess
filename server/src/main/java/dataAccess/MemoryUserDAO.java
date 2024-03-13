@@ -2,6 +2,7 @@ package dataAccess;
 
 import model.AuthData;
 import model.UserData;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.HashSet;
 import java.util.UUID;
@@ -26,9 +27,10 @@ public class MemoryUserDAO implements UserDAO {
     }
 
     public boolean validateCreds(String username, String password) {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         for (UserData user : users) {
             if (user.username().equals(username)
-            && user.password().equals(password)) {
+            && encoder.matches(password, user.password())) {
                 return true;
             }
         }
