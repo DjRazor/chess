@@ -6,5 +6,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+src/main/resources/db.properties
+
 ### Mac OS ###
 .DS_Store
