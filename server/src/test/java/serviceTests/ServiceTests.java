@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import chess.ChessGame;
 import com.google.gson.JsonObject;
 import dataAccess.DataAccessException;
+import dataAccess.SqlAuthDAO;
+import dataAccess.SqlGameDAO;
+import dataAccess.SqlUserDAO;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
@@ -15,18 +18,22 @@ import service.UserService;
 import java.util.HashSet;
 
 public class ServiceTests {
-    private UserService userService = new UserService();
-    private GameService gameService = new GameService();
-    private AuthService authService = new AuthService();
+    private UserService userService = new UserService(new SqlUserDAO());
+    private GameService gameService = new GameService(new SqlGameDAO());
+    private AuthService authService = new AuthService(new SqlAuthDAO());
     private final String username = "Han";
     private final String password = "Solo";
     private final String email = "starwars@yahoo.com";
     private UserData userData = new UserData(username, password, email);
     private GameData gameData;
-    private void clear() {
-        userService = new UserService();
-        gameService = new GameService();
-        authService = new AuthService();
+
+    public ServiceTests() throws DataAccessException {
+    }
+
+    private void clear() throws DataAccessException {
+        userService = new UserService(new SqlUserDAO());
+        gameService = new GameService(new SqlGameDAO());
+        authService = new AuthService(new SqlAuthDAO());
     }
     @Test
     @Order(1)

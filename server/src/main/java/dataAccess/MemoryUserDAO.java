@@ -9,12 +9,14 @@ import java.util.UUID;
 
 public class MemoryUserDAO implements UserDAO {
     private HashSet<UserData> users = new HashSet<>();
-    private HashSet<String> usersList = new HashSet<>();
+    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    //private HashSet<String> usersList = new HashSet<>();
     public AuthData register(UserData user) {
-       users.add(user);
-       usersList.add(user.username());
-       String authToken = UUID.randomUUID().toString();
-       return new AuthData(authToken, user.username());
+        String hashPass = encoder.encode(user.password());
+        UserData encryptUser = new UserData(user.username(), hashPass, user.email());
+        users.add(encryptUser);
+        //usersList.add(user.username());
+        return login(encryptUser);
     }
 
     public boolean userExists(String username) {
@@ -42,10 +44,10 @@ public class MemoryUserDAO implements UserDAO {
         return new AuthData(authToken, user.username());
     }
     public void removeUser(String username) {
-        usersList.remove(username);
+        //usersList.remove(username);
     }
     public void clear() {
-        usersList = new HashSet<>();
+        //usersList = new HashSet<>();
         users = new HashSet<>();
     }
 }

@@ -2,14 +2,10 @@ package server;
 
 import chess.ChessGame;
 import com.google.gson.JsonObject;
-import dataAccess.AuthDAO;
-import dataAccess.DataAccessException;
-import dataAccess.MemoryUserDAO;
-import dataAccess.UserDAO;
+import dataAccess.*;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import service.AuthService;
 import service.GameService;
 import service.UserService;
@@ -18,15 +14,16 @@ import com.google.gson.Gson;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 
 public class Server {
     private HashSet<String> watchers = new HashSet<>();
-    private final AuthService authService = new AuthService();
-    private final GameService gameService = new GameService();
-    private final UserService userService = new UserService();
+    private AuthService authService = new AuthService(new SqlAuthDAO());
+    private GameService gameService  = new GameService(new SqlGameDAO());;
+    private UserService userService = new UserService(new SqlUserDAO());;
+    public Server() throws DataAccessException {
+    }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws DataAccessException {
         new Server().run(8080);
     }
 
@@ -146,7 +143,7 @@ public class Server {
         boolean logoutVal = authService.logout(authHeadToken);
         String usernameForAuth = authService.usernameForAuth(authHeadToken);
         if (logoutVal) {
-            userService.removeUser(usernameForAuth);
+            //userService.removeUser(usernameForAuth);
             res.status(200);
             return new JsonObject();
         }
@@ -209,13 +206,8 @@ public class Server {
             return taken();
         }
 
-        // Encrypts password
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        UserData encryptUser = new UserData(parsedJson.username(),
-                encoder.encode(parsedJson.password()), parsedJson.email());
-
         // Adds user to existing users and authorized users
-        AuthData user = userService.register(encryptUser);
+        AuthData user = userService.register(parsedJson);
         authService.addAuthUser(user);
 
         // Returns username and authToken

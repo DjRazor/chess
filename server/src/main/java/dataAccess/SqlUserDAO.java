@@ -4,36 +4,74 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
 import model.UserData;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.UUID;
 
 import static java.sql.Types.NULL;
 
 public class SqlUserDAO implements UserDAO {
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     public SqlUserDAO() throws DataAccessException {
+        clear();
         configureDatabase();
     }
     public AuthData register(UserData user) throws DataAccessException {
-        var statement = "INSERT INTO users (username, password, email, json) VALUES (?,?,?,?)";
-        var json = new Gson().toJson(user);
-        var id = executeUpdate(statement, user.username(), user.password(), user.email(), json);
-        return null;
+        var statement = "INSERT INTO chess.users (username, password, email) VALUES (?,?,?)";
+        String hashPass = encoder.encode(user.password());
+        var id = executeUpdate(statement, user.username(), hashPass, user.email());
+        if (id == 1) {
+            return login(user);
+        }
+        throw new DataAccessException("Register Error: user taken");
     }
     public AuthData login(UserData user) throws DataAccessException {
-        return null;
+        String authToken = UUID.randomUUID().toString();
+        return new AuthData(authToken, user.username());
     }
     public boolean userExists(String username) throws DataAccessException {
-        return false;
+        var result = new ArrayList<String>();
+        configureDatabase();
+        try (var conn = DatabaseManager.getConnection()) {
+            var statement = "SELECT * FROM chess.users WHERE username = ?";
+            try (var ps = conn.prepareStatement(statement)) {
+                ps.setString(1,username);
+                try (var rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(rs.getString("username"));
+                    }
+                }
+            }
+            return result.size() == 1;
+        } catch (SQLException ex) {
+            throw new DataAccessException(String.format("Unable to read data: %s", ex.getMessage()));
+        }
     }
     public boolean validateCreds(String username, String password) throws DataAccessException {
-        return false;
+        try (var conn = DatabaseManager.getConnection()) {
+            var statement = "SELECT password FROM chess.users WHERE username = ?";
+            try (var ps = conn.prepareStatement(statement)) {
+                ps.setString(1,username);
+                try (var rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String storedPass = rs.getString("password");
+                        return encoder.matches(password, storedPass);
+                    }
+                    return false;
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("validateCreds Error: " + ex.getMessage());
+        }
     }
     public void removeUser(String username) throws DataAccessException {
 
     }
     public void clear() throws DataAccessException {
-
+        var statement = "DROP TABLE IF EXISTS chess.users";
+        executeUpdate(statement);
     }
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
@@ -59,29 +97,47 @@ public class SqlUserDAO implements UserDAO {
     }
     private final String[] createStatements = {
             """
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS chess.users (
               `id` int NOT NULL AUTO_INCREMENT,
               `username` varchar(256) NOT NULL,
               `password` varchar(256) NOT NULL,
               `email` varchar(256) NOT NULL,
               `json` TEXT DEFAULT NULL,
               PRIMARY KEY (`id`),
-              INDEX(password),
               INDEX(username),
               INDEX(email)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
             """
     };
+    private Connection connect() throws DataAccessException {
+        // Makes connection
+        Connection connection;
+        try(Connection c = DatabaseManager.getConnection()) {
+            connection = c;
+            // Starts transaction
+            connection.setAutoCommit(false);
+            return connection;
+        } catch (SQLException ex) {
+            throw new DataAccessException(String.format("Query Connection Error: %s", ex.getMessage()));
+        }
+    }
     private void configureDatabase() throws DataAccessException {
         DatabaseManager.createDatabase();
         try (var conn = DatabaseManager.getConnection()) {
             for (var statement : createStatements) {
                 try (var prepStatement = conn.prepareStatement(statement)) {
                     prepStatement.executeUpdate();
+                    System.out.print("Configgy successy");
                 }
             }
         } catch (SQLException ex) {
             throw new DataAccessException(String.format("Unable to configure database: %s", ex.getMessage()));
-        }
+        } //finally {
+          //  try {
+          //      connect().close();
+          //  } catch (SQLException ex) {
+          //      throw new DataAccessException(ex.getMessage());
+          //  }
+       // }
     }
 }

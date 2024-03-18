@@ -1,14 +1,16 @@
 package service;
 
-import dataAccess.DataAccessException;
-import dataAccess.MemoryAuthDAO;
-import dataAccess.MemoryUserDAO;
-import dataAccess.UserDAO;
+import dataAccess.*;
 import model.AuthData;
 import model.UserData;
 
 public class UserService {
-    private UserDAO userDAO = new MemoryUserDAO();
+    private UserDAO userDAO;
+
+    public UserService(UserDAO userDAO) {
+        this.userDAO = userDAO;
+    }
+
     public AuthData register(UserData user) throws DataAccessException {
         return userDAO.register(user);
     }

@@ -3,13 +3,16 @@ package service;
 import com.google.gson.JsonObject;
 import dataAccess.DataAccessException;
 import dataAccess.GameDAO;
-import dataAccess.MemoryGameDAO;
+import dataAccess.SqlGameDAO;
 import model.GameData;
 
 import java.util.HashSet;
 
 public class GameService {
-    private GameDAO gameDAO = new MemoryGameDAO();
+    private GameDAO gameDAO;
+    public GameService(GameDAO gameDAO) {
+        this.gameDAO = gameDAO;
+    }
 
     public void createGame(GameData gameData) throws DataAccessException {
         gameDAO.createGame(gameData);
