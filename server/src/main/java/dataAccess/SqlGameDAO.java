@@ -38,6 +38,7 @@ public class SqlGameDAO implements GameDAO{
         }
     }
     public HashSet<JsonObject> listGames() throws DataAccessException {
+        configureDatabase();
         HashSet<JsonObject> chessGames = new HashSet<>();
         var statement = "SELECT * FROM chess.games";
         try (var conn = DatabaseManager.getConnection()) {

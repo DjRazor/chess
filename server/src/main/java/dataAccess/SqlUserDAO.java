@@ -15,7 +15,6 @@ import static java.sql.Types.NULL;
 public class SqlUserDAO implements UserDAO {
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     public SqlUserDAO() throws DataAccessException {
-        clear();
         configureDatabase();
     }
     public AuthData register(UserData user) throws DataAccessException {
