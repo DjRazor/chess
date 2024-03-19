@@ -22,10 +22,10 @@ public class SqlUserDAO implements UserDAO {
         var statement = "INSERT INTO chess.users (username, password, email) VALUES (?,?,?)";
         String hashPass = encoder.encode(user.password());
         var id = executeUpdate(statement, user.username(), hashPass, user.email());
-        if (id == 1) {
+        if (id >= 1) {
             return login(user);
         }
-        throw new DataAccessException("Register Error: user taken");
+        throw new DataAccessException("Register Error: " + id + " affected");
     }
     public AuthData login(UserData user) throws DataAccessException {
         String authToken = UUID.randomUUID().toString();
