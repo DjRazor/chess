@@ -14,7 +14,6 @@ import static java.sql.Types.NULL;
 
 public class SqlAuthDAO implements AuthDAO {
     public SqlAuthDAO() throws DataAccessException {
-        clear();
         configureDatabase();
     }
     public boolean validateAuth(String authToken) throws DataAccessException {

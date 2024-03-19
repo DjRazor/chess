@@ -6,6 +6,7 @@ import model.UserData;
 
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import static java.sql.Types.NULL;
@@ -15,19 +16,59 @@ public class SqlGameDAO implements GameDAO{
         configureDatabase();
     }
     public void createGame(GameData gameData) throws DataAccessException {
-
+        var statement = "INSERT INTO chess.games (gameID, whiteUsername, blackUsername, gameName, ChessGame) VALUES (?,?,?,?,?)";
+        executeUpdate(statement, gameData.gameID(), gameData.whiteUsername(),
+                    gameData.blackUsername(), gameData.gameName(), gameData.game().toString());
     }
     public boolean gameIDInUse(int gameID) throws DataAccessException {
-        return false;
+        configureDatabase();
+        var gameIDs = new ArrayList<>();
+        var statement = "SELECT * FROM chess.games";
+        try (var conn = DatabaseManager.getConnection()) {
+            try (var ps = conn.prepareStatement(statement)) {
+                try (var rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        gameIDs.add(rs.getString("gameID"));
+                    }
+                    return gameIDs.contains(gameID);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("gameIDInUse Error: " + ex.getMessage());
+        }
     }
     public HashSet<JsonObject> listGames() throws DataAccessException {
-        return null;
+        HashSet<JsonObject> chessGames = new HashSet<>();
+        var statement = "SELECT * FROM chess.games";
+        try (var conn = DatabaseManager.getConnection()) {
+            try (var ps = conn.prepareStatement(statement)) {
+                try (var rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Integer gameID = rs.getInt("gameID");
+                        String whiteUsername = rs.getString("whiteUsername");
+                        String blackUsername = rs.getString("blackUsername");
+                        String gameName = rs.getString("gameName");
+                        JsonObject jo = new JsonObject();
+                        jo.addProperty("gameID", gameID);
+                        jo.addProperty("whiteUsername", whiteUsername);
+                        jo.addProperty("blackUsername", blackUsername);
+                        jo.addProperty("gameName", gameName);
+                        chessGames.add(jo);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("listGames Error: " + ex.getMessage());
+        }
+
+        return chessGames;
     }
     public Object joinGame(int gameID, String playerColor, String username) throws DataAccessException {
         return null;
     }
     public void clear() throws DataAccessException {
-
+        var statement = "DROP TABLE IF EXISTS chess.games";
+        executeUpdate(statement);
     }
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
@@ -35,7 +76,7 @@ public class SqlGameDAO implements GameDAO{
                 for (var i = 0; i < params.length; i++) {
                     var param = params[i];
                     if (param instanceof String p) ps.setString(i + 1, p);
-                    else if (param instanceof UserData p) ps.setString(i + 1, p.toString());
+                    else if (param instanceof Integer p) ps.setInt(i + 1, p);
                     else if (param == null) ps.setNull(i + 1, NULL);
                 }
                 ps.executeUpdate();
@@ -52,13 +93,13 @@ public class SqlGameDAO implements GameDAO{
     }
     private final String[] createStatements = {
             """
-            CREATE TABLE IF NOT EXISTS games (
+            CREATE TABLE IF NOT EXISTS chess.games (
               `id` int NOT NULL AUTO_INCREMENT,
               `gameID` int NOT NULL,
               `whiteUsername` TEXT DEFAULT NULL,
               `blackUsername` TEXT DEFAULT NULL,
               `gameName` varchar(256) NOT NULL,
-              `ChessGame` varchar(256) NOT NULL,
+              `ChessGame` TEXT DEFAULT NULL,
               `json` TEXT DEFAULT NULL,
               PRIMARY KEY (`id`),
               INDEX(gameID)
