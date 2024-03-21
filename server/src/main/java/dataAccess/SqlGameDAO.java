@@ -28,7 +28,7 @@ public class SqlGameDAO implements GameDAO{
             try (var ps = conn.prepareStatement(statement)) {
                 try (var rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        gameIDs.add(rs.getString("gameID"));
+                        gameIDs.add(rs.getInt("gameID"));
                     }
                     return gameIDs.contains(gameID);
                 }
@@ -65,6 +65,18 @@ public class SqlGameDAO implements GameDAO{
         return chessGames;
     }
     public Object joinGame(int gameID, String playerColor, String username) throws DataAccessException {
+        var statement = "UPDATE chess.games SET ? WHERE gameID = ?";
+        String userInsert;
+        if (playerColor == "WHITE") {
+            userInsert = "whiteUsername = " + username;
+        } else if (playerColor == "BLACK") {
+            userInsert = "blackUsername = " + username;
+        } else {
+            // Insert observer code here
+            userInsert = "json = " + username;
+            System.out.print("Observer Case\n");
+        }
+        executeUpdate(statement, userInsert, gameID);
         return null;
     }
     public void clear() throws DataAccessException {

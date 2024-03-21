@@ -116,6 +116,7 @@ public class Server {
         int gameID = parsedJson.get("gameID").getAsInt();
         if (!gameService.gameIDInUse(gameID)) {
             res.status(400);
+            System.out.print("gameIDInUse fail\n");
             return badReq();
         }
 
