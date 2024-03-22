@@ -17,6 +17,7 @@ public class SqlAuthDAO implements AuthDAO {
         configureDatabase();
     }
     public boolean validateAuth(String authToken) throws DataAccessException {
+        configureDatabase();
         var statement = "SELECT * FROM authorized WHERE authToken = ?";
         var authStore = new ArrayList<>();
         try (var conn = DatabaseManager.getConnection()) {
@@ -46,9 +47,14 @@ public class SqlAuthDAO implements AuthDAO {
 
     }
     public boolean logout(String authToken) throws DataAccessException {
-        var statement = "DELETE FROM authorized WHERE authToken = ?";
-        var id = executeUpdate(statement, authToken);
-        return id == 1;
+        boolean validness = validateAuth(authToken);
+        if (validness) {
+            var statement = "DELETE FROM authorized WHERE authToken = ?";
+            var id = executeUpdate(statement, authToken);
+            System.out.print("ID: " + id + "\n");
+            return id == 0;
+        }
+        return false;
     }
     public String usernameForAuth(String authToken) throws DataAccessException {
         var statement = "SELECT username FROM authorized WHERE authToken = ?";

@@ -49,8 +49,9 @@ public class SqlUserDAO implements UserDAO {
         }
     }
     public boolean validateCreds(String username, String password) throws DataAccessException {
+        configureDatabase();
         try (var conn = DatabaseManager.getConnection()) {
-            var statement = "SELECT password FROM chess.users WHERE username = ?";
+            var statement = "SELECT password FROM users WHERE username = ?";
             try (var ps = conn.prepareStatement(statement)) {
                 ps.setString(1,username);
                 try (var rs = ps.executeQuery()) {
