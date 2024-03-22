@@ -51,6 +51,19 @@ public class SqlAuthDAO implements AuthDAO {
         return id == 1;
     }
     public String usernameForAuth(String authToken) throws DataAccessException {
+        var statement = "SELECT username FROM authorized WHERE authToken = ?";
+        try (var conn = DatabaseManager.getConnection()) {
+            try (var ps = conn.prepareStatement(statement)) {
+                ps.setString(1, authToken);
+                try (var rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("username");
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("usernameForAuth Error: " + ex.getMessage());
+        }
         return null;
     }
     public void clear() throws DataAccessException {

@@ -65,18 +65,50 @@ public class SqlGameDAO implements GameDAO{
         return chessGames;
     }
     public Object joinGame(int gameID, String playerColor, String username) throws DataAccessException {
-        var statement = "UPDATE chess.games SET ? WHERE gameID = ?";
-        String userInsert;
-        if (playerColor == "WHITE") {
-            userInsert = "whiteUsername = " + username;
-        } else if (playerColor == "BLACK") {
-            userInsert = "blackUsername = " + username;
-        } else {
-            // Insert observer code here
-            userInsert = "json = " + username;
-            System.out.print("Observer Case\n");
+        System.out.print("Player Color: " + playerColor + "\n");
+        System.out.print(username);
+
+        if (playerColor.equals("WHITE") && username != null) {
+            var stmt = "SELECT whiteUsername FROM chess.games WHERE gameID = ?";
+            try (var conn = DatabaseManager.getConnection()) {
+                try (var ps = conn.prepareStatement(stmt)) {
+                    ps.setInt(1, gameID);
+                    try (var rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            String currentUser = rs.getString("whiteUsername");
+                            if (currentUser != null) {
+                                return null;
+                            }
+                        }
+                    }
+                }
+            } catch (SQLException ex) {
+                throw new DataAccessException("joinGame WHITE Query Error: " + ex.getMessage());
+            }
+            var statement = "UPDATE chess.games SET whiteUsername= ? WHERE gameID = ?";
+            executeUpdate(statement, username, gameID);
+            return new JsonObject();
+        } else if (playerColor.equals("BLACK") && username != null) {
+            var stmt = "SELECT blackUsername FROM chess.games WHERE gameID = ?";
+            try (var conn = DatabaseManager.getConnection()) {
+                try (var ps = conn.prepareStatement(stmt)) {
+                    ps.setInt(1, gameID);
+                    try (var rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            String currentUser = rs.getString("blackUsername");
+                            if (currentUser != null) {
+                                return null;
+                            }
+                        }
+                    }
+                }
+            } catch (SQLException ex) {
+                throw new DataAccessException("joinGame BLACK Query Error: " + ex.getMessage());
+            }
+            var statement = "UPDATE chess.games SET blackUsername = ? WHERE gameID = ?";
+            executeUpdate(statement, username, gameID);
+            return new JsonObject();
         }
-        executeUpdate(statement, userInsert, gameID);
         return null;
     }
     public void clear() throws DataAccessException {
