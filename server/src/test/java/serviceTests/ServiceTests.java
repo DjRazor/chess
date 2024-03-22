@@ -126,7 +126,7 @@ public class ServiceTests {
     @DisplayName("Negative joinGame")
     public void negJoinGame() throws DataAccessException {
         // Tries to join taken spot
-        Object res = gameService.joinGame(1234, "WHITE", username);
+        Object res = gameService.joinGame(1111, "WHITE", username);
         assertNull(res);
     }
 
