@@ -17,13 +17,42 @@ import java.util.Random;
 
 public class Server {
     private HashSet<String> watchers = new HashSet<>();
-    private AuthService authService = new AuthService(new SqlAuthDAO());
-    private GameService gameService  = new GameService(new SqlGameDAO());;
-    private UserService userService = new UserService(new SqlUserDAO());;
-    public Server() throws DataAccessException {
+    private AuthService authService;
+
+    {
+        try {
+            authService = new AuthService(new SqlAuthDAO());
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static void main(String[] args) throws DataAccessException {
+    private GameService gameService;
+
+    {
+        try {
+            gameService = new GameService(new SqlGameDAO());
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    ;
+    private UserService userService;
+
+    {
+        try {
+            userService = new UserService(new SqlUserDAO());
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    ;
+    public Server() {
+    }
+
+    public static void main(String[] args) {
         new Server().run(8080);
     }
 
