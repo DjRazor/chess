@@ -23,9 +23,6 @@ public class UserService {
     public boolean validateCreds(String username, String password) throws DataAccessException {
         return userDAO.validateCreds(username, password);
     }
-    public void removeUser(String username) throws DataAccessException {
-        userDAO.removeUser(username);
-    }
     public void clear() throws DataAccessException {
         userDAO.clear();
     }

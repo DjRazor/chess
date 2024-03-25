@@ -43,9 +43,6 @@ public class MemoryUserDAO implements UserDAO {
         String authToken = UUID.randomUUID().toString();
         return new AuthData(authToken, user.username());
     }
-    public void removeUser(String username) {
-        //usersList.remove(username);
-    }
     public void clear() {
         //usersList = new HashSet<>();
         users = new HashSet<>();

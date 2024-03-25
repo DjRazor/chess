@@ -8,6 +8,5 @@ public interface UserDAO {
       AuthData login(UserData user) throws DataAccessException;
       boolean userExists(String username) throws DataAccessException;
       boolean validateCreds(String username, String password) throws DataAccessException;
-      void removeUser(String username) throws DataAccessException;
       void clear() throws DataAccessException;
 }

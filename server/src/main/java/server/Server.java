@@ -171,9 +171,7 @@ public class Server {
     private Object logout(Request req, Response res) throws DataAccessException {
         String authHeadToken = req.headers("authorization");
         boolean logoutVal = authService.logout(authHeadToken);
-        //String usernameForAuth = authService.usernameForAuth(authHeadToken);
         if (logoutVal) {
-            //userService.removeUser(usernameForAuth);
             res.status(200);
             return new JsonObject();
         }

@@ -6,7 +6,7 @@ import java.util.HashSet;
 
 public class MemoryAuthDAO implements AuthDAO {
     HashSet<AuthData> authorized = new HashSet<>();
-    public boolean validateAuth(String authToken) throws DataAccessException {
+    public boolean validateAuth(String authToken) {
         for (AuthData authData : authorized) {
             if (authData.authToken().equals(authToken)) {
                 return true;

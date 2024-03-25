@@ -16,7 +16,7 @@ import service.GameService;
 import service.UserService;
 
 import java.util.HashSet;
-
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ServiceTests {
     private UserService userService = new UserService(new SqlUserDAO());
     private GameService gameService = new GameService(new SqlGameDAO());
@@ -37,6 +37,26 @@ public class ServiceTests {
     }
     @Test
     @Order(1)
+    @DisplayName("Clear")
+    public void posClear() throws DataAccessException {
+        // Asserts authToken has been removed
+        AuthData authData = new AuthData("testAuth", "joey");
+        authService.addAuthUser(authData);
+        authService.clear();
+        assertFalse(authService.validateAuth(authData.authToken()));
+
+        // Asserts games are removed
+        gameService.clear();
+        HashSet<JsonObject> games = gameService.listGames();
+        assertTrue(games.isEmpty());
+
+        // Asserts user has been removed
+        userService.clear();
+        assertFalse(userService.userExists(username));
+    }
+
+    @Test
+    @Order(2)
     @DisplayName("Positive register")
     public void posRegister() throws DataAccessException {
         clear();
@@ -51,7 +71,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @DisplayName("Negative register")
     public void negRegister() throws DataAccessException {
         // Ensure username has been taken
@@ -61,7 +81,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @DisplayName("Positive login")
     public void posLogin() throws DataAccessException {
         // Logs user in
@@ -75,7 +95,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     @DisplayName("Negative login")
     public void negLogin() throws DataAccessException {
         // Tries to log in non-existent user
@@ -87,7 +107,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     @DisplayName("Positive createGame")
     public void posCreateGame() throws DataAccessException {
         gameData = new GameData(1234, null, null, "howdy", new ChessGame());
@@ -98,7 +118,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     @DisplayName("Negative createGame")
     public void negCreateGame() throws DataAccessException {
         // Tries to add game with gameID in use
@@ -111,7 +131,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     @DisplayName("Positive joinGame")
     public void posJoinGame() throws DataAccessException {
         // Joins game as white
@@ -122,7 +142,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     @DisplayName("Negative joinGame")
     public void negJoinGame() throws DataAccessException {
         // Tries to join taken spot
@@ -131,7 +151,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     @DisplayName("Positive listGames")
     public void posListGames() throws DataAccessException {
         // Ensure games are in games list
@@ -142,7 +162,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     @DisplayName("Negative listGames")
     public void negListGames() throws DataAccessException {
         // Non-auth request
@@ -150,7 +170,7 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     @DisplayName("Positive logout")
     public void posLogout() throws DataAccessException {
         // Logs out user
@@ -164,37 +184,18 @@ public class ServiceTests {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     @DisplayName("Negative logout")
     public void negLogout() throws DataAccessException {
         // Logs out user
         UserData testUser = new UserData("hey", "there", "delilah");
-        AuthData res = userService.register(testUser);
+        AuthData res = userService.login(testUser);
         authService.addAuthUser(res);
 
         // Asserts successful logout
         boolean logoutStatus = authService.logout(res.authToken());
         assertTrue(logoutStatus);
-
-        // Tries to logout user
+        boolean logoutStatus2 = authService.logout(res.authToken());
+        assertFalse(logoutStatus2);
     }
-
-    @Test
-    @Order(13)
-    @DisplayName("Clear")
-    public void posClear() throws DataAccessException {
-        // Asserts games are removed
-        gameService.clear();
-        HashSet<JsonObject> games = gameService.listGames();
-        assertTrue(games.isEmpty());
-
-        // Asserts user has been removed
-        userService.clear();
-        assertFalse(userService.userExists(username));
-
-        // Asserts authToken has been removed
-        authService.clear();
-        //assertFalse(authService.validateAuth(authData.authToken()));
-    }
-
 }

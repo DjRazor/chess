@@ -2,10 +2,10 @@ package dataAccess;
 
 import com.google.gson.JsonObject;
 import model.GameData;
-import model.UserData;
 
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -16,14 +16,16 @@ public class SqlGameDAO implements GameDAO{
         configureDatabase();
     }
     public void createGame(GameData gameData) throws DataAccessException {
-        var statement = "INSERT INTO chess.games (gameID, whiteUsername, blackUsername, gameName, ChessGame) VALUES (?,?,?,?,?)";
+        assert gameData.gameName() != null;
+        assert gameData.game() != null;
+        var statement = "INSERT INTO games (gameID, whiteUsername, blackUsername, gameName, ChessGame) VALUES (?,?,?,?,?)";
         executeUpdate(statement, gameData.gameID(), gameData.whiteUsername(),
                     gameData.blackUsername(), gameData.gameName(), gameData.game().toString());
     }
     public boolean gameIDInUse(int gameID) throws DataAccessException {
         configureDatabase();
         var gameIDs = new ArrayList<>();
-        var statement = "SELECT * FROM chess.games";
+        var statement = "SELECT * FROM games";
         try (var conn = DatabaseManager.getConnection()) {
             try (var ps = conn.prepareStatement(statement)) {
                 try (var rs = ps.executeQuery()) {
@@ -40,7 +42,7 @@ public class SqlGameDAO implements GameDAO{
     public HashSet<JsonObject> listGames() throws DataAccessException {
         configureDatabase();
         HashSet<JsonObject> chessGames = new HashSet<>();
-        var statement = "SELECT * FROM chess.games";
+        var statement = "SELECT * FROM games";
         try (var conn = DatabaseManager.getConnection()) {
             try (var ps = conn.prepareStatement(statement)) {
                 try (var rs = ps.executeQuery()) {
@@ -65,18 +67,14 @@ public class SqlGameDAO implements GameDAO{
         return chessGames;
     }
     public Object joinGame(int gameID, String playerColor, String username) throws DataAccessException {
-        System.out.print("Player Color: " + playerColor + "\n");
-        System.out.print(username);
-
         if (playerColor.equals("WHITE") && username != null) {
-            var stmt = "SELECT whiteUsername FROM chess.games WHERE gameID = ?";
+            var stmt = "SELECT whiteUsername FROM games WHERE gameID = ?";
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(stmt)) {
                     ps.setInt(1, gameID);
                     try (var rs = ps.executeQuery()) {
                         if (rs.next()) {
-                            String currentUser = rs.getString("whiteUsername");
-                            if (currentUser != null) {
+                            if (rs.getString("whiteUsername") != null) {
                                 return null;
                             }
                         }
@@ -85,11 +83,11 @@ public class SqlGameDAO implements GameDAO{
             } catch (SQLException ex) {
                 throw new DataAccessException("joinGame WHITE Query Error: " + ex.getMessage());
             }
-            var statement = "UPDATE chess.games SET whiteUsername= ? WHERE gameID = ?";
+            var statement = "UPDATE games SET whiteUsername= ? WHERE gameID = ?";
             executeUpdate(statement, username, gameID);
             return new JsonObject();
         } else if (playerColor.equals("BLACK") && username != null) {
-            var stmt = "SELECT blackUsername FROM chess.games WHERE gameID = ?";
+            var stmt = "SELECT blackUsername FROM games WHERE gameID = ?";
             try (var conn = DatabaseManager.getConnection()) {
                 try (var ps = conn.prepareStatement(stmt)) {
                     ps.setInt(1, gameID);
@@ -105,14 +103,14 @@ public class SqlGameDAO implements GameDAO{
             } catch (SQLException ex) {
                 throw new DataAccessException("joinGame BLACK Query Error: " + ex.getMessage());
             }
-            var statement = "UPDATE chess.games SET blackUsername = ? WHERE gameID = ?";
+            var statement = "UPDATE games SET blackUsername = ? WHERE gameID = ?";
             executeUpdate(statement, username, gameID);
             return new JsonObject();
         }
         return null;
     }
     public void clear() throws DataAccessException {
-        var statement = "DROP TABLE IF EXISTS chess.games";
+        var statement = "DROP TABLE IF EXISTS games";
         executeUpdate(statement);
     }
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
@@ -138,7 +136,7 @@ public class SqlGameDAO implements GameDAO{
     }
     private final String[] createStatements = {
             """
-            CREATE TABLE IF NOT EXISTS chess.games (
+            CREATE TABLE IF NOT EXISTS games (
               `id` int NOT NULL AUTO_INCREMENT,
               `gameID` int NOT NULL,
               `whiteUsername` TEXT DEFAULT NULL,

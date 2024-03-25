@@ -1,6 +1,5 @@
 package dataAccess;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
 import model.UserData;
@@ -18,23 +17,28 @@ public class SqlUserDAO implements UserDAO {
         configureDatabase();
     }
     public AuthData register(UserData user) throws DataAccessException {
-        var statement = "INSERT INTO chess.users (username, password, email) VALUES (?,?,?)";
-        String hashPass = encoder.encode(user.password());
-        var id = executeUpdate(statement, user.username(), hashPass, user.email());
-        if (id >= 1) {
-            return login(user);
+        if (!userExists(user.username())) {
+            var statement = "INSERT INTO users (username, password, email) VALUES (?,?,?)";
+            String hashPass = encoder.encode(user.password());
+            var id = executeUpdate(statement, user.username(), hashPass, user.email());
+            if (id >= 1) {
+                return login(user);
+            }
         }
-        throw new DataAccessException("Register Error: " + id + " affected");
+        return null;
     }
     public AuthData login(UserData user) throws DataAccessException {
-        String authToken = UUID.randomUUID().toString();
-        return new AuthData(authToken, user.username());
+        if (validateCreds(user.username(), user.password())) {
+            String authToken = UUID.randomUUID().toString();
+            return new AuthData(authToken, user.username());
+        }
+        return null;
     }
     public boolean userExists(String username) throws DataAccessException {
         var result = new ArrayList<String>();
         configureDatabase();
         try (var conn = DatabaseManager.getConnection()) {
-            var statement = "SELECT * FROM chess.users WHERE username = ?";
+            var statement = "SELECT * FROM users WHERE username = ?";
             try (var ps = conn.prepareStatement(statement)) {
                 ps.setString(1,username);
                 try (var rs = ps.executeQuery()) {
@@ -66,11 +70,8 @@ public class SqlUserDAO implements UserDAO {
             throw new DataAccessException("validateCreds Error: " + ex.getMessage());
         }
     }
-    public void removeUser(String username) throws DataAccessException {
-
-    }
     public void clear() throws DataAccessException {
-        var statement = "DROP TABLE IF EXISTS chess.users";
+        var statement = "DROP TABLE IF EXISTS users";
         executeUpdate(statement);
     }
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
@@ -97,7 +98,7 @@ public class SqlUserDAO implements UserDAO {
     }
     private final String[] createStatements = {
             """
-            CREATE TABLE IF NOT EXISTS chess.users (
+            CREATE TABLE IF NOT EXISTS users (
               `id` int NOT NULL AUTO_INCREMENT,
               `username` varchar(256) NOT NULL,
               `password` varchar(256) NOT NULL,

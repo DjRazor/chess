@@ -1,6 +1,5 @@
 package dataAccess;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
 import model.UserData;
@@ -9,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-
 import static java.sql.Types.NULL;
 
 public class SqlAuthDAO implements AuthDAO {
@@ -75,7 +73,6 @@ public class SqlAuthDAO implements AuthDAO {
     public void clear() throws DataAccessException {
         var statement = "DROP TABLE IF EXISTS authorized";
         executeUpdate(statement);
-        System.out.print("Clear function used.\n");
     }
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
