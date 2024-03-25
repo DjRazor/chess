@@ -1,5 +1,10 @@
+package server;
+
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import dataAccess.DataAccessException;
+import model.AuthData;
+import model.UserData;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,47 +13,51 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.HashSet;
 
 public class ServerFacade {
-    private final String serverURL;
+    private final int serverURL;
 
-    public ServerFacade(String URL) {
+    public ServerFacade(int URL) {
         serverURL = URL;
     }
 
-    public void register() throws DataAccessException {
+    public AuthData register(UserData userData) throws DataAccessException {
         String path = "/user";
-
+        return this.makeRequest("POST", path, userData, AuthData.class);
     }
 
-    public void login() throws DataAccessException {
+    public AuthData login(UserData userData) throws DataAccessException {
         String path = "/session";
-
+        return this.makeRequest("POST", path, userData, AuthData.class);
     }
 
     public void logout() throws DataAccessException {
         String path = "/session";
-
+        this.makeRequest("DELETE", path, null, null);
     }
 
-    public void createGame() throws DataAccessException {
+    public Object createGame(String gameName) throws DataAccessException {
         String path = "/game";
-
+        return this.makeRequest("POST", path, gameName, JsonObject.class);
     }
 
-    public void listGames() throws DataAccessException {
+    public Object listGames() throws DataAccessException {
         String path = "/game";
-
+        return this.makeRequest("GET", path, null, HashSet.class);
     }
 
-    public void joinGame() throws DataAccessException {
+    public void joinGame(int gameID, String playerColor) throws DataAccessException {
         String path = "/game";
-
+        JsonObject jgo = new JsonObject();
+        jgo.addProperty("playerColor", playerColor);
+        jgo.addProperty("gameID", gameID);
+        this.makeRequest("PUT", path, jgo, null);
     }
 
     public void clear() throws DataAccessException {
         String path = "/db";
-
+        this.makeRequest("DELETE", path, null, null);
     }
 
     private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass) throws DataAccessException {
