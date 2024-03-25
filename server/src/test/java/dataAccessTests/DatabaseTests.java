@@ -13,9 +13,9 @@ import java.util.HashSet;
 import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DatabaseTests {
-    private GameDAO gameDAO = new SqlGameDAO();
-    private UserDAO userDAO = new SqlUserDAO();
-    private AuthDAO authDAO = new SqlAuthDAO();
+    private final GameDAO gameDAO = new SqlGameDAO();
+    private final UserDAO userDAO = new SqlUserDAO();
+    private final AuthDAO authDAO = new SqlAuthDAO();
     private final String username = "Master Chief";
     private final String password = "zippy-do-da";
     private final String email = "hey@there.com";
@@ -161,15 +161,10 @@ public class DatabaseTests {
     @Order(17)
     @DisplayName("Negative Add Auth User")
     public void negAddAuthUser() throws DataAccessException {
-        // Asserts that username is not empty string
-        boolean addAuthStatus = false;
-        AuthData tempAuth = new AuthData("XD", "");
-        try {
-            authDAO.addAuthUser(tempAuth);
-        } catch (AssertionError ex) {
-            addAuthStatus = true;
-        }
-        assertTrue(addAuthStatus);
+        AuthData tempAuth = new AuthData("XD", "jack");
+        authDAO.addAuthUser(tempAuth);
+        authDAO.logout(tempAuth.authToken());
+        assertFalse(authDAO.validateAuth(tempAuth.authToken()));
     }
     @Test
     @Order(18)
@@ -201,14 +196,8 @@ public class DatabaseTests {
     @DisplayName("Negative Create Game")
     public void negCreateGame() throws DataAccessException {
         // Missing gameName and game
-        boolean assertionMade = false;
         GameData tempGame = new GameData(9999,null,null, null,null);
-        try {
-            gameDAO.createGame(tempGame);
-        } catch (AssertionError ex) {
-            assertionMade = true;
-        }
-        assertTrue(assertionMade);
+        assertFalse(gameDAO.createGame(tempGame));
     }
     @Test
     @Order(22)

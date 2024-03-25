@@ -9,8 +9,12 @@ public class MemoryGameDAO implements GameDAO {
     private HashSet<GameData> games = new HashSet<>();
     private HashSet<String> watcher = new HashSet<>();
 
-    public void createGame(GameData gameData) {
+    public boolean createGame(GameData gameData) {
+        if (gameData.gameName() == null) {
+            return false;
+        }
         games.add(gameData);
+        return true;
     }
     public boolean gameIDInUse(int gameID) {
         for (GameData gameData : games) {

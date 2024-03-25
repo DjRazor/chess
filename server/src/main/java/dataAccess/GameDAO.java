@@ -6,7 +6,7 @@ import model.GameData;
 import java.util.HashSet;
 
 public interface GameDAO {
-    void createGame(GameData gameData) throws DataAccessException;
+    boolean createGame(GameData gameData) throws DataAccessException;
     boolean gameIDInUse(int gameID) throws DataAccessException;
     HashSet<JsonObject> listGames() throws DataAccessException;
     Object joinGame(int gameID, String playerColor, String username) throws DataAccessException;

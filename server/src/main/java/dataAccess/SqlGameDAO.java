@@ -5,7 +5,6 @@ import model.GameData;
 
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -15,12 +14,14 @@ public class SqlGameDAO implements GameDAO{
     public SqlGameDAO() throws DataAccessException {
         configureDatabase();
     }
-    public void createGame(GameData gameData) throws DataAccessException {
-        assert gameData.gameName() != null;
-        assert gameData.game() != null;
+    public boolean createGame(GameData gameData) throws DataAccessException {
+        if (gameData.gameName() == null) {
+            return false;
+        }
         var statement = "INSERT INTO games (gameID, whiteUsername, blackUsername, gameName, ChessGame) VALUES (?,?,?,?,?)";
         executeUpdate(statement, gameData.gameID(), gameData.whiteUsername(),
                     gameData.blackUsername(), gameData.gameName(), gameData.game().toString());
+        return true;
     }
     public boolean gameIDInUse(int gameID) throws DataAccessException {
         configureDatabase();

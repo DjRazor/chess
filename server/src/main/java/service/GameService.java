@@ -14,8 +14,8 @@ public class GameService {
         this.gameDAO = gameDAO;
     }
 
-    public void createGame(GameData gameData) throws DataAccessException {
-        gameDAO.createGame(gameData);
+    public boolean createGame(GameData gameData) throws DataAccessException {
+        return gameDAO.createGame(gameData);
     }
     public boolean gameIDInUse(int gameID) throws DataAccessException {
         return gameDAO.gameIDInUse(gameID);

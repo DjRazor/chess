@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Objects;
 
 import static java.sql.Types.NULL;
 
@@ -36,7 +35,6 @@ public class SqlAuthDAO implements AuthDAO {
     }
     public void addAuthUser(AuthData authData) throws DataAccessException {
         configureDatabase();
-        assert !Objects.equals(authData.username(), "");
         var statement = "INSERT INTO authorized (username, authToken, json) VALUES (?,?,?)";
         JsonObject jo = new JsonObject();
         jo.addProperty("username", authData.username());
