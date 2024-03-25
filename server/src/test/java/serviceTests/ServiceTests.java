@@ -24,8 +24,7 @@ public class ServiceTests {
     private final String username = "Han";
     private final String password = "Solo";
     private final String email = "starwars@yahoo.com";
-    private UserData userData = new UserData(username, password, email);
-    private GameData gameData;
+    private final UserData userData = new UserData(username, password, email);
 
     public ServiceTests() throws DataAccessException {
     }
@@ -110,7 +109,7 @@ public class ServiceTests {
     @Order(6)
     @DisplayName("Positive createGame")
     public void posCreateGame() throws DataAccessException {
-        gameData = new GameData(1234, null, null, "howdy", new ChessGame());
+        GameData gameData = new GameData(1234, null, null, "howdy", new ChessGame());
         gameService.createGame(gameData);
 
         // Asserts game is in list of games

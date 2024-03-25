@@ -16,9 +16,8 @@ import java.util.Map;
 import java.util.Random;
 
 public class Server {
-    private HashSet<String> watchers = new HashSet<>();
-    private AuthService authService;
-
+    private final HashSet<String> watchers = new HashSet<>();
+    private final AuthService authService;
     {
         try {
             authService = new AuthService(new SqlAuthDAO());
@@ -27,8 +26,7 @@ public class Server {
         }
     }
 
-    private GameService gameService;
-
+    private final GameService gameService;
     {
         try {
             gameService = new GameService(new SqlGameDAO());
@@ -38,8 +36,7 @@ public class Server {
     }
 
     ;
-    private UserService userService;
-
+    private final UserService userService;
     {
         try {
             userService = new UserService(new SqlUserDAO());
@@ -48,9 +45,7 @@ public class Server {
         }
     }
 
-    ;
-    public Server() {
-    }
+    public Server() {}
 
     public static void main(String[] args) {
         new Server().run(8080);
