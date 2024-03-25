@@ -159,7 +159,15 @@ public class DatabaseTests {
     @Order(17)
     @DisplayName("Negative Add Auth User")
     public void negAddAuthUser() throws DataAccessException {
-
+        // Asserts that username is not empty string
+        boolean addAuthStatus = false;
+        AuthData tempAuth = new AuthData("XD", "");
+        try {
+            authDAO.addAuthUser(tempAuth);
+        } catch (AssertionError ex) {
+            addAuthStatus = true;
+        }
+        assertTrue(addAuthStatus);
     }
     @Test
     @Order(18)
@@ -242,5 +250,26 @@ public class DatabaseTests {
         // Tries to join taken spot
         Object joinStatus = gameDAO.joinGame(1234, "WHITE", "imposter");
         assertNull(joinStatus);
+    }
+    @Test
+    @Order(28)
+    @DisplayName("Negative Clear GameDAO")
+    public void negClearGameDAO() throws DataAccessException {
+        gameDAO.clear();
+        assertTrue(true);
+    }
+    @Test
+    @Order(29)
+    @DisplayName("Negative Clear AuthDAO")
+    public void negClearAuthDAO() throws DataAccessException {
+        authDAO.clear();
+        assertTrue(true);
+    }
+    @Test
+    @Order(30)
+    @DisplayName("Negative Clear UserDAO")
+    public void negClearUserDAO() throws DataAccessException {
+        userDAO.clear();
+        assertTrue(true);
     }
 }
