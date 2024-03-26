@@ -16,9 +16,9 @@ import java.net.URL;
 import java.util.HashSet;
 
 public class ServerFacade {
-    private final int serverURL;
+    private final String serverURL;
 
-    public ServerFacade(int URL) {
+    public ServerFacade(String URL) {
         serverURL = URL;
     }
 
