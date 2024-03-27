@@ -72,7 +72,7 @@ public class ServerFacade {
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
         } catch (Exception ex) {
-            throw new DataAccessException(ex.getMessage());
+            throw new DataAccessException("makeRequest exception: " + ex.getMessage());
         }
     }
     private static void writeBody(Object request, HttpURLConnection http) throws IOException {
@@ -81,6 +81,8 @@ public class ServerFacade {
             String reqData = new Gson().toJson(request);
             try (OutputStream reqBody = http.getOutputStream()) {
                 reqBody.write(reqData.getBytes());
+            } catch (IOException ex) {
+                throw new IOException("writeBody exception: " + ex.getMessage());
             }
         }
     }
@@ -93,6 +95,8 @@ public class ServerFacade {
                 if (responseClass != null) {
                     response = new Gson().fromJson(reader, responseClass);
                 }
+            } catch (IOException ex) {
+                throw new IOException("readBody exception: " + ex.getMessage());
             }
         }
         return response;
