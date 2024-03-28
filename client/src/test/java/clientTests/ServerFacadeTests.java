@@ -223,7 +223,7 @@ public class ServerFacadeTests {
     @Test
     @Order(14)
     @DisplayName("Clear Added Info")
-    public void clrInfo() throws DataAccessException {
+    public void clearInfo() throws DataAccessException {
         facade.clear();
         assertTrue(true);
     }
