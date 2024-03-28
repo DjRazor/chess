@@ -1,17 +1,22 @@
 package ui;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.Request;
 import dataAccess.DataAccessException;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 import server.ServerFacade;
 
 import java.io.PrintStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 
 import static ui.EscapeSequences.*;
 import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
@@ -79,7 +84,6 @@ public class ChessClient {
                 logState = LogState.IN;
                 username = params[0];
                 authToken = ((AuthData) loginRes).authToken();
-                System.out.print("authToken: " + authToken + "\n");
                 return "Successful login for user: " + params[0] + ".\n";
             } else {
                 return loginRes.toString();
@@ -99,14 +103,83 @@ public class ChessClient {
     }
     public String createGame(String... params) throws DataAccessException {
         assertSignIn();
-        return null;
+        if (params.length == 1) {
+            JsonObject gameName = new JsonObject();
+            gameName.addProperty("gameName", params[0]);
+            Object game = facade.createGame(gameName, authToken);
+            if (game.getClass().equals(GameData.class)) {
+                return "Successfully created game " + gameName;
+            }
+            return game.toString();
+        }
+        throw new DataAccessException("Expected 1 argument, but " + params.length + " were given.\n");
     }
     public String listGames() throws DataAccessException {
         assertSignIn();
-        return null;
+
+        int count = 1;
+        ArrayList<String> gamesAsString = new ArrayList<>();
+
+        JsonObject games = facade.listGames(authToken);
+        JsonArray gamesArray = games.getAsJsonArray("games");
+
+        for (JsonElement element : gamesArray) {
+            JsonObject gameElem = element.getAsJsonObject();
+
+            int gameID = gameElem.get("gameID").getAsInt();
+            String gameName = gameElem.get("gameName").getAsString();
+            String whiteUsername;
+            if (gameElem.get("whiteUsername") != null) {
+                whiteUsername = gameElem.get("whiteUsername").getAsString();
+            } else {
+                whiteUsername = "empty";
+            }
+            String blackUsername;
+            if (gameElem.get("blackUsername") != null) {
+                blackUsername = gameElem.get("blackUsername").getAsString();
+            } else {
+                blackUsername = "empty";
+            }
+
+            String game = """
+                    %s:
+                    Game ID: %d
+                    Game Name: %s
+                    White player: %s
+                    Black player: %s
+                    
+                    """.formatted(count, gameID, gameName, whiteUsername, blackUsername);
+            gamesAsString.add(game);
+            count += 1;
+        }
+        return gamesAsString.toString();
     }
     public String joinGame(String... params) throws DataAccessException {
         assertSignIn();
+
+        if (params.length == 2) {
+            JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
+            if (joinStatus.entrySet().isEmpty()) {
+                // Print boards
+                PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
+                out.print(ERASE_SCREEN);
+
+                drawBoard1(out);
+                out.println("\u001B[0m");
+                drawBoard2(out);
+
+                // Resets all attributes to default
+                out.println("\u001B[0m");
+
+                return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
+            }
+        }
+        throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
+    }
+    public String joinObserver(String... params) throws DataAccessException {
+        assertSignIn();
+
+        // Print boards
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         out.print(ERASE_SCREEN);
 
@@ -116,10 +189,6 @@ public class ChessClient {
 
         // Resets all attributes to default
         out.println("\u001B[0m");
-        return null;
-    }
-    public String joinObserver(String... params) throws DataAccessException {
-        assertSignIn();
         return null;
     }
     public String help() {

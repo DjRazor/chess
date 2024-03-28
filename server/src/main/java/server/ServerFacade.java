@@ -37,22 +37,22 @@ public class ServerFacade {
         this.makeRequest("DELETE", path, authToken, null, null);
     }
 
-    public Object createGame(String gameName, String authToken) throws DataAccessException {
+    public Object createGame(JsonObject gameName, String authToken) throws DataAccessException {
         String path = "/game";
         return this.makeRequest("POST", path, authToken, gameName, JsonObject.class);
     }
 
-    public Object listGames(String authToken) throws DataAccessException {
+    public JsonObject listGames(String authToken) throws DataAccessException {
         String path = "/game";
-        return this.makeRequest("GET", path, authToken, null, HashSet.class);
+        return this.makeRequest("GET", path, authToken, null, JsonObject.class);
     }
 
-    public void joinGame(int gameID, String playerColor, String authToken) throws DataAccessException {
+    public JsonObject joinGame(int gameID, String playerColor, String authToken) throws DataAccessException {
         String path = "/game";
         JsonObject jgo = new JsonObject();
-        jgo.addProperty("playerColor", playerColor);
+        jgo.addProperty("playerColor", playerColor.toUpperCase());
         jgo.addProperty("gameID", gameID);
-        this.makeRequest("PUT", path, authToken, jgo, null);
+        return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
     }
 
     public void clear() throws DataAccessException {
@@ -68,14 +68,12 @@ public class ServerFacade {
             http.setDoOutput(true);
             http.setRequestProperty("authorization", authToken);
 
-            System.out.print("Current authToken: " + authToken + "\n");
-
             writeBody(request, http);
             http.connect();
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
         } catch (Exception ex) {
-            throw new DataAccessException("makeRequest exception: " + ex.getMessage());
+            throw new DataAccessException("" + ex.getMessage());
         }
     }
     private static void writeBody(Object request, HttpURLConnection http) throws IOException {
