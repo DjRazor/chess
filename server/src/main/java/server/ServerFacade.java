@@ -50,7 +50,9 @@ public class ServerFacade {
     public JsonObject joinGame(int gameID, String playerColor, String authToken) throws DataAccessException {
         String path = "/game";
         JsonObject jgo = new JsonObject();
-        jgo.addProperty("playerColor", playerColor.toUpperCase());
+        if (playerColor != null) {
+            jgo.addProperty("playerColor", playerColor.toUpperCase());
+        }
         jgo.addProperty("gameID", gameID);
         return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
     }

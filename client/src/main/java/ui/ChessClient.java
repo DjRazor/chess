@@ -93,7 +93,6 @@ public class ChessClient {
     }
     public String logout() throws DataAccessException {
         assertSignIn();
-        System.out.print("authToken: " + authToken + "\n");
         facade.logout(authToken);
         authToken = null;
         String temp = username;
@@ -152,7 +151,14 @@ public class ChessClient {
             gamesAsString.add(game);
             count += 1;
         }
-        return gamesAsString.toString();
+        String gamesString = "";
+        if (gamesAsString.isEmpty()) {
+            gamesString += "No games currently.\n";
+        }
+        for (String game : gamesAsString) {
+            gamesString += game;
+        }
+        return gamesString;
     }
     public String joinGame(String... params) throws DataAccessException {
         assertSignIn();
@@ -178,18 +184,24 @@ public class ChessClient {
     }
     public String joinObserver(String... params) throws DataAccessException {
         assertSignIn();
+        if (params.length == 1) {
+            JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
+            if (joinStatus.entrySet().isEmpty()) {
+                // Print boards
+                PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
+                out.print(ERASE_SCREEN);
 
-        // Print boards
-        PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
-        out.print(ERASE_SCREEN);
+                drawBoard1(out);
+                out.println("\u001B[0m");
+                drawBoard2(out);
 
-        drawBoard1(out);
-        out.println("\u001B[0m");
-        drawBoard2(out);
+                // Resets all attributes to default
+                out.println("\u001B[0m");
 
-        // Resets all attributes to default
-        out.println("\u001B[0m");
-        return null;
+                return "Observing game " + params[0];
+            }
+        }
+        throw new DataAccessException("Expected 1 argument but " + params.length + " were given.\n");
     }
     public String help() {
         if (logState == LogState.OUT) {
