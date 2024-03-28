@@ -19,6 +19,7 @@ public class Repl {
         Scanner scanner = new Scanner(System.in);
         var input = "";
         while (!input.equals("quit")) {
+            System.out.println();
             String line = scanner.nextLine();
             try {
                 input = client.eval(line);

@@ -1,11 +1,15 @@
 package ui;
 
+import com.google.gson.JsonObject;
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.Request;
 import dataAccess.DataAccessException;
 import model.AuthData;
 import model.UserData;
 import server.ServerFacade;
 
 import java.io.PrintStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -17,6 +21,7 @@ public class ChessClient {
     private final ServerFacade facade;
     private final String serverURL;
     private String username = null;
+    private String authToken;
 
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
@@ -37,12 +42,13 @@ public class ChessClient {
                 case "quit" -> "quit";
                 case "register" -> register(params);
                 case "login" -> login(params);
-                case "logout" -> logout(params);
+                case "logout" -> logout();
                 case "creategame" -> createGame(params);
                 case "listgames" -> listGames();
                 case "joingame" -> joinGame(params);
                 case "joinobserver" -> joinObserver(params);
-                default -> help();
+                case "help", "", " " -> help();
+                default -> unknown();
             };
         } catch (DataAccessException ex) {
             return ex.getMessage();
@@ -50,24 +56,46 @@ public class ChessClient {
     }
     public String register(String... params) throws DataAccessException {
         if (params.length == 3) {
-            logState = LogState.IN;
-            username = params[0];
             UserData userData = new UserData(params[0], params[1], params[2]);
             Object regRes = facade.register(userData);
             if (regRes.getClass().equals(AuthData.class)) {
+                logState = LogState.IN;
+                username = params[0];
+                authToken = ((AuthData) regRes).authToken();
                 return "Successful register for user: " + params[0] + ".\n";
             } else {
-                throw new DataAccessException("register error: response was not AuthData class, but rather: " + regRes.getClass());
+                return regRes.toString();
             }
         }
         throw new DataAccessException("Expected 3 arguments, but " + params.length + " were given.");
     }
-    public String login(String... params) {
-        return null;
+    public String login(String... params) throws DataAccessException{
+        if (params.length == 2) {
+            JsonObject loginInfo = new JsonObject();
+            loginInfo.addProperty("username", params[0]);
+            loginInfo.addProperty("password", params[1]);
+            Object loginRes = facade.login(loginInfo);
+            if (loginRes.getClass().equals(AuthData.class)) {
+                logState = LogState.IN;
+                username = params[0];
+                authToken = ((AuthData) loginRes).authToken();
+                System.out.print("authToken: " + authToken + "\n");
+                return "Successful login for user: " + params[0] + ".\n";
+            } else {
+                return loginRes.toString();
+            }
+        }
+        throw new DataAccessException("Expected 2 arguments, but received " + params.length);
     }
-    public String logout(String... params) throws DataAccessException {
+    public String logout() throws DataAccessException {
         assertSignIn();
-        return null;
+        System.out.print("authToken: " + authToken + "\n");
+        facade.logout(authToken);
+        authToken = null;
+        String temp = username;
+        username = null;
+        logState = LogState.OUT;
+        return temp + " signed out.\n";
     }
     public String createGame(String... params) throws DataAccessException {
         assertSignIn();
@@ -102,7 +130,6 @@ public class ChessClient {
                     - login <username> <password>
                     - quit
                     - help
-                    
                    """;
         }
         return """
@@ -114,8 +141,10 @@ public class ChessClient {
                - joinObserver <gameID>
                - quit
                - help
-               
                """;
+    }
+    public String unknown() {
+        return "Unknown command. Please enter a valid command.\n" + help();
     }
     private void assertSignIn() throws DataAccessException {
         if (logState == LogState.OUT) {

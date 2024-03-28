@@ -24,48 +24,51 @@ public class ServerFacade {
 
     public AuthData register(UserData userData) throws DataAccessException {
         String path = "/user";
-        return this.makeRequest("POST", path, userData, AuthData.class);
+        return this.makeRequest("POST", path, null, userData, AuthData.class);
     }
 
-    public AuthData login(UserData userData) throws DataAccessException {
+    public AuthData login(JsonObject loginInfo) throws DataAccessException {
         String path = "/session";
-        return this.makeRequest("POST", path, userData, AuthData.class);
+        return this.makeRequest("POST", path, null, loginInfo, AuthData.class);
     }
 
-    public void logout() throws DataAccessException {
+    public void logout(String authToken) throws DataAccessException {
         String path = "/session";
-        this.makeRequest("DELETE", path, null, null);
+        this.makeRequest("DELETE", path, authToken, null, null);
     }
 
-    public Object createGame(String gameName) throws DataAccessException {
+    public Object createGame(String gameName, String authToken) throws DataAccessException {
         String path = "/game";
-        return this.makeRequest("POST", path, gameName, JsonObject.class);
+        return this.makeRequest("POST", path, authToken, gameName, JsonObject.class);
     }
 
-    public Object listGames() throws DataAccessException {
+    public Object listGames(String authToken) throws DataAccessException {
         String path = "/game";
-        return this.makeRequest("GET", path, null, HashSet.class);
+        return this.makeRequest("GET", path, authToken, null, HashSet.class);
     }
 
-    public void joinGame(int gameID, String playerColor) throws DataAccessException {
+    public void joinGame(int gameID, String playerColor, String authToken) throws DataAccessException {
         String path = "/game";
         JsonObject jgo = new JsonObject();
         jgo.addProperty("playerColor", playerColor);
         jgo.addProperty("gameID", gameID);
-        this.makeRequest("PUT", path, jgo, null);
+        this.makeRequest("PUT", path, authToken, jgo, null);
     }
 
     public void clear() throws DataAccessException {
         String path = "/db";
-        this.makeRequest("DELETE", path, null, null);
+        this.makeRequest("DELETE", path, null, null, null);
     }
 
-    private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass) throws DataAccessException {
+    private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws DataAccessException {
         try {
             URL url = (new URI(serverURL + path)).toURL();
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
             http.setRequestMethod(method);
             http.setDoOutput(true);
+            http.setRequestProperty("authorization", authToken);
+
+            System.out.print("Current authToken: " + authToken + "\n");
 
             writeBody(request, http);
             http.connect();
