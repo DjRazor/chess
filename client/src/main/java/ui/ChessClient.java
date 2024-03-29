@@ -53,6 +53,7 @@ public class ChessClient {
                 case "joingame" -> joinGame(params);
                 case "joinobserver" -> joinObserver(params);
                 case "help", "", " " -> help();
+                case "clear" -> clear();
                 default -> unknown();
             };
         } catch (DataAccessException ex) {
@@ -84,7 +85,7 @@ public class ChessClient {
                 logState = LogState.IN;
                 username = params[0];
                 authToken = ((AuthData) loginRes).authToken();
-                return "Successful login for user: " + params[0] + ".\n";
+                return "Successful login for user: " + params[0] + "\n";
             } else {
                 return loginRes.toString();
             }
@@ -179,6 +180,7 @@ public class ChessClient {
 
                 return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
             }
+            return "Invalid color. Please try again.\n";
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
     }
@@ -226,6 +228,14 @@ public class ChessClient {
     }
     public String unknown() {
         return "Unknown command. Please enter a valid command.\n" + help();
+    }
+    public String clear() throws DataAccessException {
+        assertSignIn();
+        facade.clear();
+        username = null;
+        authToken = null;
+        logState = LogState.OUT;
+        return "Database has been cleared\n";
     }
     private void assertSignIn() throws DataAccessException {
         if (logState == LogState.OUT) {

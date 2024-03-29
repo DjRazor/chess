@@ -18,9 +18,10 @@ public class SqlGameDAO implements GameDAO{
         if (gameData.gameName() == null) {
             return false;
         }
+        String gameJson = new Gson().toJson(gameData.game(), GameData.class);
         var statement = "INSERT INTO games (gameID, whiteUsername, blackUsername, gameName, ChessGame) VALUES (?,?,?,?,?)";
         executeUpdate(statement, gameData.gameID(), gameData.whiteUsername(),
-                    gameData.blackUsername(), gameData.gameName(), gameData.game().toString());
+                    gameData.blackUsername(), gameData.gameName(), gameJson);
         return true;
     }
     public boolean gameIDInUse(int gameID) throws DataAccessException {

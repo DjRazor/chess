@@ -50,7 +50,7 @@ public class SqlAuthDAO implements AuthDAO {
         if (validness) {
             var statement = "DELETE FROM authorized WHERE authToken = ?";
             var id = executeUpdate(statement, authToken);
-            System.out.print("ID: " + id + "\n");
+            //System.out.print("ID: " + id + "\n");
             return id == 0;
         }
         return false;

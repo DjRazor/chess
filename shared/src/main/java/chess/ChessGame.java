@@ -14,7 +14,7 @@ public class ChessGame {
     private ChessBoard currentBoard = new ChessBoard();
     private TeamColor currentColor = TeamColor.WHITE;
     public ChessGame() {
-
+        currentBoard.resetBoard();
     }
 
     @Override

@@ -1,10 +1,6 @@
 package ui;
 
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
-
-import static ui.EscapeSequences.*;
 
 public class Repl {
 
