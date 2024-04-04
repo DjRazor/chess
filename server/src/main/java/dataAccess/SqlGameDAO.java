@@ -1,5 +1,6 @@
 package dataAccess;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.GameData;
 
@@ -18,7 +19,7 @@ public class SqlGameDAO implements GameDAO{
         if (gameData.gameName() == null) {
             return false;
         }
-        String gameJson = new Gson().toJson(gameData.game(), GameData.class);
+        String gameJson = new Gson().toJson(gameData.game());
         var statement = "INSERT INTO games (gameID, whiteUsername, blackUsername, gameName, ChessGame) VALUES (?,?,?,?,?)";
         executeUpdate(statement, gameData.gameID(), gameData.whiteUsername(),
                     gameData.blackUsername(), gameData.gameName(), gameJson);

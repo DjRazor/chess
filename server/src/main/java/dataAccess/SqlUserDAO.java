@@ -110,35 +110,16 @@ public class SqlUserDAO implements UserDAO {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
             """
     };
-    private Connection connect() throws DataAccessException {
-        // Makes connection
-        Connection connection;
-        try(Connection c = DatabaseManager.getConnection()) {
-            connection = c;
-            // Starts transaction
-            connection.setAutoCommit(false);
-            return connection;
-        } catch (SQLException ex) {
-            throw new DataAccessException(String.format("Query Connection Error: %s", ex.getMessage()));
-        }
-    }
     private void configureDatabase() throws DataAccessException {
         DatabaseManager.createDatabase();
         try (var conn = DatabaseManager.getConnection()) {
             for (var statement : createStatements) {
                 try (var prepStatement = conn.prepareStatement(statement)) {
                     prepStatement.executeUpdate();
-                    System.out.print("Configgy successy");
                 }
             }
         } catch (SQLException ex) {
             throw new DataAccessException(String.format("Unable to configure database: %s", ex.getMessage()));
-        } //finally {
-          //  try {
-          //      connect().close();
-          //  } catch (SQLException ex) {
-          //      throw new DataAccessException(ex.getMessage());
-          //  }
-       // }
+        }
     }
 }

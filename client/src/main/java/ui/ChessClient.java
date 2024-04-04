@@ -167,6 +167,7 @@ public class ChessClient {
         if (params.length == 2) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
             if (joinStatus.entrySet().isEmpty()) {
+
                 // Print boards
                 PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
                 out.print(ERASE_SCREEN);
