@@ -21,7 +21,7 @@ public class GameService {
         return gameDAO.gameIDInUse(gameID);
     }
 
-    public HashSet<JsonObject> listGames() throws DataAccessException {
+    public HashSet<GameData> listGames() throws DataAccessException {
         return gameDAO.listGames();
     }
     public Object joinGame(int gameID, String playerColor, String username) throws DataAccessException {

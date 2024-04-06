@@ -24,17 +24,8 @@ public class MemoryGameDAO implements GameDAO {
         }
         return false;
     }
-    public HashSet<JsonObject> listGames() {
-        HashSet<JsonObject> altGames = new HashSet<>();
-        for (GameData gameData : games) {
-            JsonObject altGame = new JsonObject();
-            altGame.addProperty("gameID", gameData.gameID());
-            altGame.addProperty("whiteUsername", gameData.whiteUsername());
-            altGame.addProperty("blackUsername", gameData.blackUsername());
-            altGame.addProperty("gameName", gameData.gameName());
-            altGames.add(altGame);
-        }
-        return altGames;
+    public HashSet<GameData> listGames() {
+        return games;
     }
 
     public Object joinGame(int gameID, String playerColor, String username) {

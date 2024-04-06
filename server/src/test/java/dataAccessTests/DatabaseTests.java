@@ -30,7 +30,7 @@ public class DatabaseTests {
         // Checks games table is empty
         gameDAO.createGame(new GameData(1234,null,null,"clrTest",new ChessGame()));
         gameDAO.clear();
-        HashSet<JsonObject> games = gameDAO.listGames();
+        HashSet<GameData> games = gameDAO.listGames();
         assertEquals(games.size(), 0);
     }
     @Test
@@ -217,14 +217,14 @@ public class DatabaseTests {
     @Order(24)
     @DisplayName("Positive List Games")
     public void posListGames() throws DataAccessException {
-        HashSet<JsonObject> games = gameDAO.listGames();
+        HashSet<GameData> games = gameDAO.listGames();
         assertFalse(games.isEmpty());
     }
     @Test
     @Order(25)
     @DisplayName("Negative List Games")
     public void negListGames() throws DataAccessException {
-        HashSet<JsonObject> games = gameDAO.listGames();
+        HashSet<GameData> games = gameDAO.listGames();
         assertTrue(!games.isEmpty());
     }
     @Test

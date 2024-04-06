@@ -3,10 +3,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import chess.ChessGame;
 import com.google.gson.JsonObject;
-import dataAccess.DataAccessException;
-import dataAccess.SqlAuthDAO;
-import dataAccess.SqlGameDAO;
-import dataAccess.SqlUserDAO;
+import dataAccess.*;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
@@ -46,7 +43,7 @@ public class ServiceTests {
 
         // Asserts games are removed
         gameService.clear();
-        HashSet<JsonObject> games = gameService.listGames();
+        HashSet<GameData> games = gameService.listGames();
         assertTrue(games.isEmpty());
 
         // Asserts user has been removed
@@ -156,7 +153,7 @@ public class ServiceTests {
         // Ensure games are in games list
         GameData testGame = new GameData(8080, null, null, "good day", new ChessGame());
         gameService.createGame(testGame);
-        HashSet<JsonObject> games = gameService.listGames();
+        HashSet<GameData> games = gameService.listGames();
         assertFalse(games.isEmpty());
     }
 

@@ -116,7 +116,7 @@ public class Server {
 
         // Success response
         res.type("application/json");
-        HashSet<JsonObject> altGames = gameService.listGames();
+        HashSet<GameData> altGames = gameService.listGames();
         res.status(200);
         return new Gson().toJson(Map.of("games", altGames));
     }

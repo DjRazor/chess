@@ -1,5 +1,6 @@
 package dataAccess;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.GameData;
@@ -42,9 +43,9 @@ public class SqlGameDAO implements GameDAO{
             throw new DataAccessException("gameIDInUse Error: " + ex.getMessage());
         }
     }
-    public HashSet<JsonObject> listGames() throws DataAccessException {
+    public HashSet<GameData> listGames() throws DataAccessException {
         configureDatabase();
-        HashSet<JsonObject> chessGames = new HashSet<>();
+        HashSet<GameData> chessGames = new HashSet<>();
         var statement = "SELECT * FROM games";
         try (var conn = DatabaseManager.getConnection()) {
             try (var ps = conn.prepareStatement(statement)) {
@@ -54,12 +55,9 @@ public class SqlGameDAO implements GameDAO{
                         String whiteUsername = rs.getString("whiteUsername");
                         String blackUsername = rs.getString("blackUsername");
                         String gameName = rs.getString("gameName");
-                        JsonObject jo = new JsonObject();
-                        jo.addProperty("gameID", gameID);
-                        jo.addProperty("whiteUsername", whiteUsername);
-                        jo.addProperty("blackUsername", blackUsername);
-                        jo.addProperty("gameName", gameName);
-                        chessGames.add(jo);
+                        ChessGame chessGame = new Gson().fromJson(rs.getString("ChessGame"), ChessGame.class);
+                        GameData gameData = new GameData(gameID,whiteUsername, blackUsername, gameName, chessGame);
+                        chessGames.add(gameData);
                     }
                 }
             }

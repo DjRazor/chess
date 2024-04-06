@@ -8,6 +8,8 @@ import org.junit.jupiter.api.*;
 import server.Server;
 import server.ServerFacade;
 
+import java.util.HashSet;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -166,8 +168,8 @@ public class ServerFacadeTests {
     @DisplayName("Positive List Games")
     public void posListGames() throws DataAccessException {
         AuthData authData = facade.register(new UserData("old", "mac", "donald"));
-        JsonObject games = facade.listGames(authData.authToken());
-        assertTrue(games.has("games"));
+        var games = facade.listGames(authData.authToken());
+        assertFalse(games.isEmpty());
     }
 
     @Test
@@ -178,7 +180,7 @@ public class ServerFacadeTests {
         boolean status = true;
         AuthData authData = facade.register(new UserData("new", "mac", "donald"));
         try {
-            JsonObject games = facade.listGames(authData.username());
+            var games = facade.listGames(authData.username());
         } catch (DataAccessException ex) {
             status = false;
         }

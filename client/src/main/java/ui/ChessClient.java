@@ -1,5 +1,10 @@
 package ui;
 
+import chess.ChessBoard;
+import chess.ChessGame;
+import chess.ChessPiece;
+import chess.ChessPosition;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,15 +32,15 @@ public class ChessClient {
     private final String serverURL;
     private String username = null;
     private String authToken;
+    private ChessGame currentGame = new ChessGame();
+    private ChessBoard currentBoard = currentGame.getBoard();
 
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
-    private static final String[] backRow = {"R", "N", "B", "K", "Q", "B", "N", "R"};//{BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_KING, BLACK_QUEEN, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK};
-    private static final String[] pawns = {"P", "P", "P", "P", "P", "P", "P", "P",};
 
     public ChessClient(String serverURL) {
-        facade = new ServerFacade(serverURL);
         this.serverURL = serverURL;
+        facade = new ServerFacade(serverURL);
     }
 
     public String eval(String input) throws DataAccessException {
@@ -63,15 +68,11 @@ public class ChessClient {
     public String register(String... params) throws DataAccessException {
         if (params.length == 3) {
             UserData userData = new UserData(params[0], params[1], params[2]);
-            Object regRes = facade.register(userData);
-            if (regRes.getClass().equals(AuthData.class)) {
-                logState = LogState.IN;
-                username = params[0];
-                authToken = ((AuthData) regRes).authToken();
-                return "Successful register for user: " + params[0] + ".\n";
-            } else {
-                return regRes.toString();
-            }
+            AuthData regRes = facade.register(userData);
+            logState = LogState.IN;
+            username = params[0];
+            authToken = regRes.authToken();
+            return "Successful register for user: " + params[0] + ".\n";
         }
         throw new DataAccessException("Expected 3 arguments, but " + params.length + " were given.");
     }
@@ -80,15 +81,11 @@ public class ChessClient {
             JsonObject loginInfo = new JsonObject();
             loginInfo.addProperty("username", params[0]);
             loginInfo.addProperty("password", params[1]);
-            Object loginRes = facade.login(loginInfo);
-            if (loginRes.getClass().equals(AuthData.class)) {
-                logState = LogState.IN;
-                username = params[0];
-                authToken = ((AuthData) loginRes).authToken();
-                return "Successful login for user: " + params[0] + "\n";
-            } else {
-                return loginRes.toString();
-            }
+            AuthData loginRes = facade.login(loginInfo);
+            logState = LogState.IN;
+            username = params[0];
+            authToken = loginRes.authToken();
+            return "Successful login for user: " + params[0] + "\n";
         }
         throw new DataAccessException("Expected 2 arguments, but received " + params.length);
     }
@@ -119,7 +116,6 @@ public class ChessClient {
 
         int count = 1;
         ArrayList<String> gamesAsString = new ArrayList<>();
-
         JsonObject games = facade.listGames(authToken);
         JsonArray gamesArray = games.getAsJsonArray("games");
 
@@ -163,6 +159,18 @@ public class ChessClient {
     }
     public String joinGame(String... params) throws DataAccessException {
         assertSignIn();
+
+        JsonObject games = facade.listGames(authToken);
+        JsonArray gamesArray = games.getAsJsonArray("games");
+        for (JsonElement elem : gamesArray) {
+            JsonObject gameElem = elem.getAsJsonObject();
+            if (!gameElem.has("gameID")) {
+                throw new DataAccessException("wack, no gameID!\n");
+            }
+            if (gameElem.get("gameID").getAsString().equals(params[1])) {
+                currentGame = new Gson().fromJson(gameElem.get("game"), ChessGame.class);
+            }
+        }
 
         if (params.length == 2) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
@@ -244,43 +252,44 @@ public class ChessClient {
         }
     }
 
-    private static void drawBoard1(PrintStream out) {
+    private void drawBoard1(PrintStream out) {
         out.print(SET_BG_COLOR_LIGHT_GREY);
         out.print(SET_TEXT_COLOR_WHITE);
 
         drawHeaderRev(out);
 
-        printWhiteStart(out, true, backRow, 1, SET_TEXT_COLOR_RED);
-        printWhiteStart(out, false, pawns, 2, SET_TEXT_COLOR_RED);
+        printWhiteStart(out, true, 1, true);
+        printWhiteStart(out, false,2, true);
 
-        printWhiteStart(out, true, null, 3, null);
-        printWhiteStart(out, false, null, 4, null);
-        printWhiteStart(out, true, null, 5, null);
-        printWhiteStart(out, false, null, 6, null);
+        printWhiteStart(out, true, 3, true);
+        printWhiteStart(out, false, 4, true);
+        printWhiteStart(out, true, 5, true);
+        printWhiteStart(out, false, 6, true);
 
-        printWhiteStart(out, true, pawns, 7, SET_TEXT_COLOR_BLUE);
-        printWhiteStart(out, false, backRow, 8, SET_TEXT_COLOR_BLUE);
+        printWhiteStart(out, true,7, true);
+        printWhiteStart(out, false,8, true);
 
-        drawHeader(out);
+        drawHeaderRev(out);
     }
-    private static void drawBoard2(PrintStream out) {
+    private void drawBoard2(PrintStream out) {
         out.print(SET_BG_COLOR_LIGHT_GREY);
         out.print(SET_TEXT_COLOR_WHITE);
 
         drawHeader(out);
+        //ChessPiece test = currentBoard.getPiece(new ChessPosition(1,1));
 
-        printWhiteStart(out, true, backRow, 8, SET_TEXT_COLOR_BLUE);
-        printWhiteStart(out, false, pawns, 7, SET_TEXT_COLOR_BLUE);
+        printWhiteStart(out, true, 8, false);
+        printWhiteStart(out, false, 7, false);
 
-        printWhiteStart(out, true, null, 6, null);
-        printWhiteStart(out, false, null, 5, null);
-        printWhiteStart(out, true, null, 4, null);
-        printWhiteStart(out, false, null, 3, null);
+        printWhiteStart(out, true, 6, false);
+        printWhiteStart(out, false, 5, false);
+        printWhiteStart(out, true,  4, false);
+        printWhiteStart(out, false, 3, false);
 
-        printWhiteStart(out, true, pawns, 2, SET_TEXT_COLOR_RED);
-        printWhiteStart(out, false, backRow, 1, SET_TEXT_COLOR_RED);
+        printWhiteStart(out, true, 2, false);
+        printWhiteStart(out, false, 1,false);
 
-        drawHeaderRev(out);
+        drawHeader(out);
     }
     private static void drawHeader(PrintStream out) {
         out.printf("    %s\n", String.join("  ", letters));
@@ -288,15 +297,11 @@ public class ChessClient {
     private static void drawHeaderRev(PrintStream out) {
         out.printf("    %s\n", String.join("  ", revLetters));
     }
-    private static void printWhiteStart(PrintStream out, boolean white, String[] args, int num, String textColor) {
+    private void printWhiteStart(PrintStream out, boolean white, int num, boolean rev) {
         boolean whiteSpot = white;
         out.print(" "+ num + " ");
 
-        if (textColor != null) {
-            out.print(textColor);
-        }
-
-        for (int i = 0; i < 8; i++) {
+        for (int i = 1; i < 9; i++) {
             // Alternates white and black spots
             if (whiteSpot) {
                 setWhite(out);
@@ -306,8 +311,21 @@ public class ChessClient {
             whiteSpot = !whiteSpot;
 
             // Prints piece if args are given
-            if (args != null) {
-                out.print(" " + args[i] + " ");
+            ChessPosition currentPos;
+            if (!rev) {
+                currentPos = new ChessPosition(num, i);
+                out.print(SET_TEXT_COLOR_BLUE);
+            } else {
+                currentPos = new ChessPosition(9 - num, 9 - i);
+                out.print(SET_TEXT_COLOR_RED);
+            }
+            ChessPiece currentPiece = currentBoard.getPiece(currentPos);
+            if (currentPiece != null) {
+                if (currentPiece.getTeamColor() == ChessGame.TeamColor.WHITE) {
+                    out.print(" " + convertPiece(currentPiece) + " ");
+                } else if (currentPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
+                    out.print(" " + convertPiece(currentPiece) + " ");
+                }
             } else {
                 out.print("   ");
             }
@@ -322,5 +340,26 @@ public class ChessClient {
     }
     private static void setBlack(PrintStream out) {
         out.print(SET_BG_COLOR_BLACK);
+    }
+    private String convertPiece(ChessPiece piece) {
+        if (piece.getPieceType() == ChessPiece.PieceType.PAWN) {
+            return "P";
+        }
+        if (piece.getPieceType() == ChessPiece.PieceType.BISHOP) {
+            return "B";
+        }
+        if (piece.getPieceType() == ChessPiece.PieceType.ROOK) {
+            return "R";
+        }
+        if (piece.getPieceType() == ChessPiece.PieceType.KNIGHT) {
+            return "N";
+        }
+        if (piece.getPieceType() == ChessPiece.PieceType.KING) {
+            return "K";
+        }
+        if (piece.getPieceType() == ChessPiece.PieceType.QUEEN) {
+            return "Q";
+        }
+        return null;
     }
 }
