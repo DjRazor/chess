@@ -15,6 +15,8 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 import server.ServerFacade;
+import webSocketMessages.serverMessages.ServerMessage;
+import webSocketMessages.userCommands.UserGameCommand;
 
 import java.io.PrintStream;
 import java.net.URI;
@@ -28,6 +30,9 @@ import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
 
 public class ChessClient {
     private LogState logState = LogState.OUT;
+    private UserGameCommand userGameCommand;
+    private ServerMessage serverMessage;
+    private GameState gameState = GameState.OUT_OF_GAME;
     private final ServerFacade facade;
     private final String serverURL;
     private String username = null;
@@ -186,7 +191,7 @@ public class ChessClient {
 
                 // Resets all attributes to default
                 out.println("\u001B[0m");
-
+                gameState = GameState.IN_GAME;
                 return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
             }
             return "Invalid color. Please try again.\n";
@@ -195,6 +200,7 @@ public class ChessClient {
     }
     public String joinObserver(String... params) throws DataAccessException {
         assertSignIn();
+        // NEW WS FACADE ws.enterGame(username)
         if (params.length == 1) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
             if (joinStatus.entrySet().isEmpty()) {
@@ -249,6 +255,12 @@ public class ChessClient {
     private void assertSignIn() throws DataAccessException {
         if (logState == LogState.OUT) {
             throw new DataAccessException("You must sign in or register.");
+        }
+    }
+
+    private void assertInGame() throws DataAccessException {
+        if (gameState == GameState.OUT_OF_GAME) {
+            throw new DataAccessException("You must be in a game to use this command.");
         }
     }
 
