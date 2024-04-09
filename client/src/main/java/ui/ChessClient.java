@@ -1,9 +1,6 @@
 package ui;
 
-import chess.ChessBoard;
-import chess.ChessGame;
-import chess.ChessPiece;
-import chess.ChessPosition;
+import chess.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -23,9 +20,7 @@ import webSocketMessages.userCommands.UserGameCommand;
 import java.io.PrintStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.*;
 
 import static ui.EscapeSequences.*;
 import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
@@ -43,7 +38,6 @@ public class ChessClient {
     private ChessBoard currentBoard = currentGame.getBoard();
     private WebSocketFacade ws;
     private NotificationHandler notificationHandler;
-
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
 
@@ -68,7 +62,11 @@ public class ChessClient {
                 case "joinobserver" -> joinObserver(params);
                 case "help", "", " " -> help();
                 case "clear" -> clear();
-
+                case "redraw" -> redraw();
+                case "showmoves" -> showMoves(params);
+                case "resign" -> resign();
+                case "leave" -> leave();
+                case "makemove" -> makeMove(params);
                 default -> unknown();
             };
         } catch (DataAccessException ex) {
@@ -235,7 +233,7 @@ public class ChessClient {
     public String help() {
         if (logState == LogState.OUT) {
             return """
-                    Commands:
+                    Start Up Commands:
                     - register <username> <password> <email>
                     - login <username> <password>
                     - quit
@@ -243,17 +241,17 @@ public class ChessClient {
                    """;
         } else if (gameState == GameState.IN_GAME) {
             return """
-                    Commands:
+                    Game Commands:
                     - redraw
                     - showMoves <piece>
-                    - makeMove <piece> <space(i.e. a4)>
+                    - makeMove <start> <end>
                     - resign
                     - leave
                     - help
                     """;
         }
         return """
-               Commands:
+               Lobby Commands:
                - logout
                - createGame <gameName>
                - listGames
@@ -285,7 +283,12 @@ public class ChessClient {
     public String showMoves(String ...params) throws DataAccessException {
         assertSignIn();
         assertInGame();
-        return null;
+
+        if (params.length == 1) {
+            return "";
+        }
+
+        throw new DataAccessException("Expected 1 argument but " + params.length + " were given.");
     }
 
     public String makeMove(String ...params) throws DataAccessException {
@@ -293,12 +296,86 @@ public class ChessClient {
         assertInGame();
 
         // Pseudo code
-        /*
-        Get a list of all valid moves
-        If the user's inputted move is not in the list of valid moves, YEET him.
+        // setBoard() method may be needed here, but also it may not lol
+        /* <piece N> <spot a4>
+        Get user input and convert into needed chess object (piece, move) (get color from board or game)
+        mAkEmOvE
          */
+        Character[] charLetters = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 
-        return null;
+        if (params.length == 2) { // Checks param length
+            if (params[0].length() == 2 && params[1].length() == 2) { // Checks if valid spot
+                String start = params[0].toLowerCase();
+                String end = params[1].toLowerCase();
+                boolean validLetter = false;
+                boolean validLetter2 = false;
+                for (Character letter : charLetters) {
+                    if (start.charAt(0) == letter) {
+                        validLetter = true;
+                    }
+                    if (start.charAt(0) == letter) {
+                        validLetter2 = true;
+                    }
+                }
+                if (validLetter && validLetter2) {
+                    if (start.charAt(1) <= 8 && start.charAt(1) >= 1
+                    && end.charAt(1) <= 8 && end.charAt(1) >= 1) {
+                        ChessGame.TeamColor currentColor = currentGame.getTeamTurn();
+                        
+                        int startRow = convertLetterToInt(start.charAt(0));
+                        int startCol = Integer.parseInt(String.valueOf(start.charAt(1)));
+                        int endRow = convertLetterToInt(end.charAt(0));
+                        int endCol = Integer.parseInt(String.valueOf(end.charAt(1)));
+                        
+                        ChessPosition startPos = new ChessPosition(startRow, startCol);
+                        ChessPosition endPos = new ChessPosition(endRow,endCol);
+                        
+                        Collection<ChessMove> validMoves = currentGame.validMoves(startPos);
+                        Collection<ChessMove> possibleMoves = null;
+                        
+                        for (ChessMove chessMove : validMoves) {
+                            if (chessMove.getStartPosition() == startPos && endPos == chessMove.getEndPosition()) {
+                                possibleMoves.add(chessMove);
+                            }
+                        }
+                        if (possibleMoves == null) {
+                            throw new DataAccessException("Not a valid move.");
+                        }
+                        
+                        // if the size is > 0, it could only be because the piece
+                        // is a pawn and can be promoted
+                        if (possibleMoves.size() > 1) {
+                            ChessPiece promoPiece = getPromoPiece(currentColor);
+                            currentBoard.addPiece(endPos, promoPiece);
+                        }
+
+                        //currentGame.makeMove();
+                        return "Moved " + params[0] + " to " + params[1] + "\n";
+                    }
+                    throw new DataAccessException("Invalid number in move.");
+                }
+                throw new DataAccessException("Invalid letter in move.");
+            } else {
+                throw new DataAccessException("Invalid spot. Please try again.");
+            }
+
+        }
+        throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
+    }
+
+    private static ChessPiece getPromoPiece(ChessGame.TeamColor currentColor) {
+        Scanner promoScan = new Scanner(System.in);
+        while (true) {
+            System.out.println("Enter desired promo piece letter(Q,N,R,B):");
+            String line = promoScan.nextLine();
+            line = line.toUpperCase();
+            switch (line) {
+                case "Q" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.QUEEN); }
+                case "B" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.BISHOP); }
+                case "N" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.KNIGHT); }
+                case "R" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.ROOK); }
+            };
+        }
     }
 
     public String resign() throws DataAccessException {
@@ -311,7 +388,7 @@ public class ChessClient {
         assertSignIn();
         assertInGame();
         gameState = GameState.OUT_OF_GAME;
-        return null;
+        return "Left game.\n";
     }
 
     public String unknown() {
@@ -349,18 +426,13 @@ public class ChessClient {
         out.print(SET_TEXT_COLOR_WHITE);
 
         drawHeaderRev(out);
-
-        printWhiteStart(out, true, 1, true);
-        printWhiteStart(out, false,2, true);
-
-        printWhiteStart(out, true, 3, true);
-        printWhiteStart(out, false, 4, true);
-        printWhiteStart(out, true, 5, true);
-        printWhiteStart(out, false, 6, true);
-
-        printWhiteStart(out, true,7, true);
-        printWhiteStart(out, false,8, true);
-
+        for (int i = 1; i <= 8; i++) {
+            boolean black = true;
+            if (i % 2 == 0) {
+                black = false;
+            }
+            printWhiteStart(out, black, i, true);
+        }
         drawHeaderRev(out);
     }
     private void drawBoard2(PrintStream out) {
@@ -368,19 +440,13 @@ public class ChessClient {
         out.print(SET_TEXT_COLOR_WHITE);
 
         drawHeader(out);
-        //ChessPiece test = currentBoard.getPiece(new ChessPosition(1,1));
-
-        printWhiteStart(out, true, 8, false);
-        printWhiteStart(out, false, 7, false);
-
-        printWhiteStart(out, true, 6, false);
-        printWhiteStart(out, false, 5, false);
-        printWhiteStart(out, true,  4, false);
-        printWhiteStart(out, false, 3, false);
-
-        printWhiteStart(out, true, 2, false);
-        printWhiteStart(out, false, 1,false);
-
+        for (int i = 8; i >= 1; i--) {
+            boolean white = false;
+            if (i % 2 == 0) {
+                white = true;
+            }
+            printWhiteStart(out, white, i, false);
+        }
         drawHeader(out);
     }
     private static void drawHeader(PrintStream out) {
@@ -453,5 +519,44 @@ public class ChessClient {
             return "Q";
         }
         return null;
+    }
+
+    private String convertPieceToString(String param) {
+        String upperParam = param.toUpperCase();
+        if (upperParam.equals("P")) {
+            return "Pawn";
+        }
+        if (upperParam.equals("R")) {
+            return "Rook";
+        }
+        if (upperParam.equals("N")) {
+            return "Knight";
+        }
+        if (upperParam.equals("B")) {
+            return "Bishop";
+        }
+        if (upperParam.equals("Q")) {
+            return "Queen";
+        }
+        if (upperParam.equals("K")) {
+            return "Knight";
+        }
+        return null;
+    }
+
+    private int convertLetterToInt(char letter) {
+        int i;
+        switch (letter) {
+            case 'a' -> i = 1;
+            case 'b' -> i = 2;
+            case 'c' -> i = 3;
+            case 'd' -> i = 4;
+            case 'e' -> i = 5;
+            case 'f' -> i = 6;
+            case 'g' -> i = 7;
+            case 'h' -> i = 8;
+            default -> i = 0;
+        }
+        return i;
     }
 }
