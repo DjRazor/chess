@@ -98,7 +98,7 @@ public class ChessGame {
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
         ChessPiece currentPiece = currentBoard.getPiece(move.getStartPosition());
-        Collection<ChessMove> plausibleMoves = currentPiece.pieceMoves(currentBoard, move.getStartPosition());
+        Collection<ChessMove> plausibleMoves = validMoves(move.getStartPosition());
         ChessPiece.PieceType promotionPiece = move.getPromotionPiece();
 
         // If the move requested isn't a possible option, throw exception

@@ -15,6 +15,8 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 import server.ServerFacade;
+import ui.websocket.NotificationHandler;
+import ui.websocket.WebSocketFacade;
 import webSocketMessages.serverMessages.ServerMessage;
 import webSocketMessages.userCommands.UserGameCommand;
 
@@ -39,6 +41,8 @@ public class ChessClient {
     private String authToken;
     private ChessGame currentGame = new ChessGame();
     private ChessBoard currentBoard = currentGame.getBoard();
+    private WebSocketFacade ws;
+    private NotificationHandler notificationHandler;
 
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
@@ -64,6 +68,7 @@ public class ChessClient {
                 case "joinobserver" -> joinObserver(params);
                 case "help", "", " " -> help();
                 case "clear" -> clear();
+
                 default -> unknown();
             };
         } catch (DataAccessException ex) {
@@ -71,6 +76,7 @@ public class ChessClient {
         }
     }
     public String register(String... params) throws DataAccessException {
+        assertOutOfGame();
         if (params.length == 3) {
             UserData userData = new UserData(params[0], params[1], params[2]);
             AuthData regRes = facade.register(userData);
@@ -81,7 +87,8 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 3 arguments, but " + params.length + " were given.");
     }
-    public String login(String... params) throws DataAccessException{
+    public String login(String... params) throws DataAccessException {
+        assertOutOfGame();
         if (params.length == 2) {
             JsonObject loginInfo = new JsonObject();
             loginInfo.addProperty("username", params[0]);
@@ -95,6 +102,7 @@ public class ChessClient {
         throw new DataAccessException("Expected 2 arguments, but received " + params.length);
     }
     public String logout() throws DataAccessException {
+        assertOutOfGame();
         assertSignIn();
         facade.logout(authToken);
         authToken = null;
@@ -104,6 +112,7 @@ public class ChessClient {
         return temp + " signed out.\n";
     }
     public String createGame(String... params) throws DataAccessException {
+        assertOutOfGame();
         assertSignIn();
         if (params.length == 1) {
             JsonObject gameName = new JsonObject();
@@ -118,7 +127,7 @@ public class ChessClient {
     }
     public String listGames() throws DataAccessException {
         assertSignIn();
-
+        assertOutOfGame();
         int count = 1;
         ArrayList<String> gamesAsString = new ArrayList<>();
         JsonObject games = facade.listGames(authToken);
@@ -192,6 +201,8 @@ public class ChessClient {
                 // Resets all attributes to default
                 out.println("\u001B[0m");
                 gameState = GameState.IN_GAME;
+                ws = new WebSocketFacade(serverURL, notificationHandler);
+                ws.enterGame();
                 return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
             }
             return "Invalid color. Please try again.\n";
@@ -205,15 +216,16 @@ public class ChessClient {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
             if (joinStatus.entrySet().isEmpty()) {
                 // Print boards
-                PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
-                out.print(ERASE_SCREEN);
-
-                drawBoard1(out);
-                out.println("\u001B[0m");
-                drawBoard2(out);
-
-                // Resets all attributes to default
-                out.println("\u001B[0m");
+//                PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
+//                out.print(ERASE_SCREEN);
+//
+//                drawBoard1(out);
+//                out.println("\u001B[0m");
+//                drawBoard2(out);
+//
+//                // Resets all attributes to default
+//                out.println("\u001B[0m");
+                redraw();
 
                 return "Observing game " + params[0];
             }
@@ -229,6 +241,16 @@ public class ChessClient {
                     - quit
                     - help
                    """;
+        } else if (gameState == GameState.IN_GAME) {
+            return """
+                    Commands:
+                    - redraw
+                    - showMoves <piece>
+                    - makeMove <piece> <space(i.e. a4)>
+                    - resign
+                    - leave
+                    - help
+                    """;
         }
         return """
                Commands:
@@ -241,6 +263,57 @@ public class ChessClient {
                - help
                """;
     }
+
+    /* In Game Methods */
+    public String redraw() throws DataAccessException {
+        assertSignIn();
+        assertInGame();
+
+        PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
+        out.print(ERASE_SCREEN);
+
+        drawBoard1(out);
+        out.println("\u001B[0m");
+        drawBoard2(out);
+
+        // Resets all attributes to default
+        out.println("\u001B[0m");
+
+        return "Boards drawn.\n";
+    }
+
+    public String showMoves(String ...params) throws DataAccessException {
+        assertSignIn();
+        assertInGame();
+        return null;
+    }
+
+    public String makeMove(String ...params) throws DataAccessException {
+        assertSignIn();
+        assertInGame();
+
+        // Pseudo code
+        /*
+        Get a list of all valid moves
+        If the user's inputted move is not in the list of valid moves, YEET him.
+         */
+
+        return null;
+    }
+
+    public String resign() throws DataAccessException {
+        assertSignIn();
+        assertInGame();
+        return null;
+    }
+
+    public String leave() throws DataAccessException {
+        assertSignIn();
+        assertInGame();
+        gameState = GameState.OUT_OF_GAME;
+        return null;
+    }
+
     public String unknown() {
         return "Unknown command. Please enter a valid command.\n" + help();
     }
@@ -250,6 +323,7 @@ public class ChessClient {
         username = null;
         authToken = null;
         logState = LogState.OUT;
+        gameState = GameState.OUT_OF_GAME;
         return "Database has been cleared\n";
     }
     private void assertSignIn() throws DataAccessException {
@@ -261,6 +335,12 @@ public class ChessClient {
     private void assertInGame() throws DataAccessException {
         if (gameState == GameState.OUT_OF_GAME) {
             throw new DataAccessException("You must be in a game to use this command.");
+        }
+    }
+
+    private void assertOutOfGame() throws DataAccessException {
+        if (gameState == GameState.IN_GAME) {
+            throw new DataAccessException("You cannot use this command while in game.");
         }
     }
 
