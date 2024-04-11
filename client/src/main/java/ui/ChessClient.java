@@ -5,8 +5,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.Request;
 import dataAccess.DataAccessException;
 import model.AuthData;
 import model.GameData;
@@ -18,7 +16,6 @@ import webSocketMessages.serverMessages.ServerMessage;
 import webSocketMessages.userCommands.UserGameCommand;
 
 import java.io.PrintStream;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -34,8 +31,8 @@ public class ChessClient {
     private final String serverURL;
     private String username = null;
     private String authToken;
-    private ChessGame currentGame = new ChessGame();
-    private ChessBoard currentBoard = currentGame.getBoard();
+    private ChessGame.TeamColor teamColor;
+    private GameData currentGameData;
     private WebSocketFacade ws;
     private NotificationHandler notificationHandler;
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
@@ -46,7 +43,7 @@ public class ChessClient {
         facade = new ServerFacade(serverURL);
     }
 
-    public String eval(String input) throws DataAccessException {
+    public String eval(String input) throws InvalidMoveException {
         try {
             var tokens = input.toLowerCase().split(" ");
             var cmd = (tokens.length > 0) ? tokens[0] : "help";
@@ -106,6 +103,7 @@ public class ChessClient {
         authToken = null;
         String temp = username;
         username = null;
+        teamColor = null;
         logState = LogState.OUT;
         return temp + " signed out.\n";
     }
@@ -126,6 +124,12 @@ public class ChessClient {
     public String listGames() throws DataAccessException {
         assertSignIn();
         assertOutOfGame();
+
+        // For resigned games, set ChessGame to null
+        // If GameData.game() == null, print "Finished game."
+        // Idk tho, could be good to keep game to show where it ended.
+        // Probably not because it's not that essential
+
         int count = 1;
         ArrayList<String> gamesAsString = new ArrayList<>();
         JsonObject games = facade.listGames(authToken);
@@ -169,9 +173,8 @@ public class ChessClient {
         }
         return gamesString;
     }
-    public String joinGame(String... params) throws DataAccessException {
-        assertSignIn();
 
+    private void setCurrentGameData(String gameID) throws DataAccessException {
         JsonObject games = facade.listGames(authToken);
         JsonArray gamesArray = games.getAsJsonArray("games");
         for (JsonElement elem : gamesArray) {
@@ -179,10 +182,17 @@ public class ChessClient {
             if (!gameElem.has("gameID")) {
                 throw new DataAccessException("wack, no gameID!\n");
             }
-            if (gameElem.get("gameID").getAsString().equals(params[1])) {
-                currentGame = new Gson().fromJson(gameElem.get("game"), ChessGame.class);
+            if (gameElem.get("gameID").getAsString().equals(gameID)) {
+                currentGameData = new Gson().fromJson(gameElem, GameData.class);
             }
         }
+    }
+
+    public String joinGame(String... params) throws DataAccessException {
+        assertSignIn();
+        assertOutOfGame();
+
+        setCurrentGameData(params[1]);
 
         if (params.length == 2) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
@@ -199,8 +209,12 @@ public class ChessClient {
                 // Resets all attributes to default
                 out.println("\u001B[0m");
                 gameState = GameState.IN_GAME;
-                ws = new WebSocketFacade(serverURL, notificationHandler);
-                ws.enterGame();
+                String tempTeamColor = params[0].toUpperCase();
+                setUserTeamColor(tempTeamColor);
+                if (teamColor == ChessGame.TeamColor.BLACK) {
+                }
+                //ws = new WebSocketFacade(serverURL, notificationHandler);
+                //ws.enterGame();
                 return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
             }
             return "Invalid color. Please try again.\n";
@@ -209,6 +223,7 @@ public class ChessClient {
     }
     public String joinObserver(String... params) throws DataAccessException {
         assertSignIn();
+        assertOutOfGame();
         // NEW WS FACADE ws.enterGame(username)
         if (params.length == 1) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
@@ -243,7 +258,7 @@ public class ChessClient {
             return """
                     Game Commands:
                     - redraw
-                    - showMoves <piece>
+                    - showMoves <spot>
                     - makeMove <start> <end>
                     - resign
                     - leave
@@ -267,6 +282,8 @@ public class ChessClient {
         assertSignIn();
         assertInGame();
 
+        setCurrentGameData(String.valueOf(currentGameData.gameID()));
+
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         out.print(ERASE_SCREEN);
 
@@ -284,20 +301,31 @@ public class ChessClient {
         assertSignIn();
         assertInGame();
 
-        if (params.length == 1) {
-            return "";
-        }
+        setCurrentGameData(String.valueOf(currentGameData.gameID()));
 
+        if (params.length == 1) {
+            int col = convertLetterToInt(params[0].charAt(0));
+            int row = Integer.parseInt(String.valueOf(params[0].charAt(1)));
+            boolean emptySpot = currentGameData.game().getBoard().getPiece(new ChessPosition(row, col)) == null;
+            if (emptySpot) {
+                return "No piece found at " + params[0] + "\n";
+            }
+            Collection<ChessMove> moves = currentGameData.game().validMoves(new ChessPosition(row, col));
+            if (moves.isEmpty()) {
+                return "No valid moves for " + params[0] + "\n";
+            }
+            return "Moves found.\n";
+        }
         throw new DataAccessException("Expected 1 argument but " + params.length + " were given.");
     }
 
-    public String makeMove(String ...params) throws DataAccessException {
+    public String makeMove(String ...params) throws DataAccessException, InvalidMoveException {
         assertSignIn();
         assertInGame();
 
         // Pseudo code
         // setBoard() method may be needed here, but also it may not lol
-        /* <piece N> <spot a4>
+        /*
         Get user input and convert into needed chess object (piece, move) (get color from board or game)
         mAkEmOvE
          */
@@ -313,52 +341,50 @@ public class ChessClient {
                     if (start.charAt(0) == letter) {
                         validLetter = true;
                     }
-                    if (start.charAt(0) == letter) {
+                    if (end.charAt(0) == letter) {
                         validLetter2 = true;
                     }
                 }
                 if (validLetter && validLetter2) {
-                    if (start.charAt(1) <= 8 && start.charAt(1) >= 1
-                    && end.charAt(1) <= 8 && end.charAt(1) >= 1) {
-                        ChessGame.TeamColor currentColor = currentGame.getTeamTurn();
-                        
-                        int startRow = convertLetterToInt(start.charAt(0));
-                        int startCol = Integer.parseInt(String.valueOf(start.charAt(1)));
-                        int endRow = convertLetterToInt(end.charAt(0));
-                        int endCol = Integer.parseInt(String.valueOf(end.charAt(1)));
+                    int startRow = Integer.parseInt(String.valueOf(start.charAt(1)));
+                    int endRow = Integer.parseInt(String.valueOf(end.charAt(1)));
+                    int startCol = convertLetterToInt(start.charAt(0));
+                    int endCol = convertLetterToInt(end.charAt(0));
+                    System.out.println("Start pos: " + startRow + startCol);
+                    if (startRow <= 8 && startRow >= 1 && endRow <= 8 && endRow >= 1) {
+                        ChessGame.TeamColor currentColor = currentGameData.game().getTeamTurn();
                         
                         ChessPosition startPos = new ChessPosition(startRow, startCol);
-                        ChessPosition endPos = new ChessPosition(endRow,endCol);
+                        ChessPosition endPos = new ChessPosition(endRow, endCol);
                         
-                        Collection<ChessMove> validMoves = currentGame.validMoves(startPos);
-                        Collection<ChessMove> possibleMoves = null;
-                        
-                        for (ChessMove chessMove : validMoves) {
-                            if (chessMove.getStartPosition() == startPos && endPos == chessMove.getEndPosition()) {
-                                possibleMoves.add(chessMove);
-                            }
-                        }
-                        if (possibleMoves == null) {
+                        Collection<ChessMove> validMoves = currentGameData.game().validMoves(startPos);
+                        System.out.println("validMoves size before removals: " + validMoves.size());
+                        validMoves.removeIf(chessMove -> !chessMove.getStartPosition().equals(startPos)
+                                || !chessMove.getEndPosition().equals(endPos));
+
+                        if (validMoves.isEmpty()) {
                             throw new DataAccessException("Not a valid move.");
                         }
-                        
                         // if the size is > 0, it could only be because the piece
                         // is a pawn and can be promoted
-                        if (possibleMoves.size() > 1) {
-                            ChessPiece promoPiece = getPromoPiece(currentColor);
-                            currentBoard.addPiece(endPos, promoPiece);
+                        else {
+                            if (validMoves.size() > 1) {
+                                ChessPiece promoPiece = getPromoPiece(currentColor);
+                                currentGameData.game().makeMove(new ChessMove(startPos, endPos, promoPiece.getPieceType()));
+                            }
+                            else {
+                                currentGameData.game().makeMove(new ChessMove(startPos, endPos, null));
+                            }
+                            facade.updateGame(currentGameData, authToken);
+                            redraw();
                         }
-
-                        //currentGame.makeMove();
                         return "Moved " + params[0] + " to " + params[1] + "\n";
                     }
                     throw new DataAccessException("Invalid number in move.");
                 }
                 throw new DataAccessException("Invalid letter in move.");
-            } else {
-                throw new DataAccessException("Invalid spot. Please try again.");
             }
-
+            throw new DataAccessException("Invalid spot. Please try again.");
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
     }
@@ -374,20 +400,48 @@ public class ChessClient {
                 case "B" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.BISHOP); }
                 case "N" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.KNIGHT); }
                 case "R" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.ROOK); }
-            };
+            }
         }
     }
 
     public String resign() throws DataAccessException {
         assertSignIn();
         assertInGame();
-        return null;
+        Scanner resScan = new Scanner(System.in);
+        while (true) {
+            System.out.println("Are you sure you want to resign? (Y/N)");
+            String line = resScan.nextLine();
+            line = line.toUpperCase();
+            switch (line) {
+                case "Y" -> {
+                    gameState = GameState.OUT_OF_GAME;
+                    currentGameData = null;
+                    //facade.updateGame();
+                    return "End game.\n";
+                }
+                case "N" -> {
+                    return "Continuing game.\n";
+                }
+            }
+        }
     }
 
     public String leave() throws DataAccessException {
         assertSignIn();
         assertInGame();
+
+        // Add code to update game for when player leaves to show empty spot
+        // This could be done through the updateGame method
+        GameData editedGame;
+        if (teamColor == ChessGame.TeamColor.BLACK) {
+            editedGame = new GameData(currentGameData.gameID(), currentGameData.whiteUsername(), null, currentGameData.gameName(),currentGameData.game());
+        } else {
+            editedGame = new GameData(currentGameData.gameID(), null, currentGameData.blackUsername(), currentGameData.gameName(),currentGameData.game());
+        }
+        facade.updateGame(editedGame, authToken);
         gameState = GameState.OUT_OF_GAME;
+        currentGameData = null;
+        teamColor = null;
         return "Left game.\n";
     }
 
@@ -401,6 +455,8 @@ public class ChessClient {
         authToken = null;
         logState = LogState.OUT;
         gameState = GameState.OUT_OF_GAME;
+        teamColor = null;
+        currentGameData = null;
         return "Database has been cleared\n";
     }
     private void assertSignIn() throws DataAccessException {
@@ -472,16 +528,16 @@ public class ChessClient {
             ChessPosition currentPos;
             if (!rev) {
                 currentPos = new ChessPosition(num, i);
-                out.print(SET_TEXT_COLOR_BLUE);
             } else {
                 currentPos = new ChessPosition(9 - num, 9 - i);
-                out.print(SET_TEXT_COLOR_RED);
             }
-            ChessPiece currentPiece = currentBoard.getPiece(currentPos);
+            ChessPiece currentPiece = currentGameData.game().getBoard().getPiece(currentPos);
             if (currentPiece != null) {
                 if (currentPiece.getTeamColor() == ChessGame.TeamColor.WHITE) {
+                    out.print(SET_TEXT_COLOR_BLUE);
                     out.print(" " + convertPiece(currentPiece) + " ");
                 } else if (currentPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
+                    out.print(SET_TEXT_COLOR_RED);
                     out.print(" " + convertPiece(currentPiece) + " ");
                 }
             } else {
@@ -558,5 +614,15 @@ public class ChessClient {
             default -> i = 0;
         }
         return i;
+    }
+
+    private void setUserTeamColor(String color) throws DataAccessException {
+        if (color.equals("BLACK")) {
+            teamColor = ChessGame.TeamColor.BLACK;
+        } else if (color.equals("WHITE")) {
+            teamColor = ChessGame.TeamColor.WHITE;
+        } else {
+            throw new DataAccessException("Error setting User team color.");
+        }
     }
 }

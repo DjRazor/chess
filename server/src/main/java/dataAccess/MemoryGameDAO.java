@@ -47,6 +47,10 @@ public class MemoryGameDAO implements GameDAO {
         return null;
     }
 
+    public void updateGame(GameData gameData) {
+        // Update later
+    }
+
     public void clear() {
         games = new HashSet<>();
     }

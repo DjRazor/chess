@@ -64,11 +64,21 @@ public class Server {
         Spark.get("/game", this::listGames);
         Spark.post("/game", this::createGame);
         Spark.put("/game", this::joinGame);
+        Spark.put("/gameupdate", this::updateGame);
 
         Spark.awaitInitialization();
         return Spark.port();
     }
-
+    private Object updateGame(Request req, Response res) throws DataAccessException {
+        GameData game = new Gson().fromJson(req.body(), GameData.class);
+        try {
+            gameService.updateGame(game);
+        } catch (DataAccessException ex) {
+            throw new DataAccessException("updateGame server error: " + ex.getMessage());
+        }
+        res.status(200);
+        return new JsonObject();
+    }
     private Object createGame(Request req, Response res) throws DataAccessException {
         // Checks if request has valid elements
         JsonObject parsedJson = new Gson().fromJson(req.body(), JsonObject.class);

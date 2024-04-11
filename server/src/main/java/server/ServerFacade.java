@@ -1,9 +1,11 @@
 package server;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import dataAccess.DataAccessException;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 
 import java.io.IOException;
@@ -57,6 +59,11 @@ public class ServerFacade {
         return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
     }
 
+    public void updateGame(GameData gameData, String authToken) throws DataAccessException {
+        String path = "/gameupdate";
+        this.makeRequest("PUT", path, authToken, gameData, null);
+    }
+
     public void clear() throws DataAccessException {
         String path = "/db";
         this.makeRequest("DELETE", path, null, null, null);
@@ -75,7 +82,7 @@ public class ServerFacade {
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
         } catch (Exception ex) {
-            throw new DataAccessException("" + ex.getMessage());
+            throw new DataAccessException("makeRequest exception: " + ex.getMessage());
         }
     }
     private static void writeBody(Object request, HttpURLConnection http) throws IOException {

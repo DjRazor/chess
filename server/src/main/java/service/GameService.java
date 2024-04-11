@@ -1,9 +1,7 @@
 package service;
 
-import com.google.gson.JsonObject;
 import dataAccess.DataAccessException;
 import dataAccess.GameDAO;
-import dataAccess.SqlGameDAO;
 import model.GameData;
 
 import java.util.HashSet;
@@ -20,7 +18,6 @@ public class GameService {
     public boolean gameIDInUse(int gameID) throws DataAccessException {
         return gameDAO.gameIDInUse(gameID);
     }
-
     public HashSet<GameData> listGames() throws DataAccessException {
         return gameDAO.listGames();
     }
@@ -29,5 +26,8 @@ public class GameService {
     }
     public void clear() throws DataAccessException {
         gameDAO.clear();
+    }
+    public void updateGame(GameData game) throws DataAccessException {
+        gameDAO.updateGame(game);
     }
 }
