@@ -78,7 +78,7 @@ public class ChessClient {
             logState = LogState.IN;
             username = params[0];
             authToken = regRes.authToken();
-            return "Successful register for user: " + params[0] + ".\n";
+            return "Successful register for user: " + params[0] + "\n";
         }
         throw new DataAccessException("Expected 3 arguments, but " + params.length + " were given.");
     }
@@ -193,6 +193,7 @@ public class ChessClient {
         assertOutOfGame();
 
         setCurrentGameData(params[1]);
+        assertNotResigned();
 
         if (params.length == 2) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
@@ -283,6 +284,7 @@ public class ChessClient {
         assertInGame();
 
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
+        assertNotResigned();
 
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         out.print(ERASE_SCREEN);
@@ -302,6 +304,7 @@ public class ChessClient {
         assertInGame();
 
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
+        assertNotResigned();
 
         if (params.length == 1) {
             int col = convertLetterToInt(params[0].charAt(0));
@@ -329,6 +332,8 @@ public class ChessClient {
         Get user input and convert into needed chess object (piece, move) (get color from board or game)
         mAkEmOvE
          */
+        setCurrentGameData(String.valueOf(currentGameData.gameID()));
+        assertNotResigned();
         Character[] charLetters = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 
         if (params.length == 2) { // Checks param length
@@ -414,8 +419,8 @@ public class ChessClient {
             line = line.toUpperCase();
             switch (line) {
                 case "Y" -> {
-                    gameState = GameState.OUT_OF_GAME;
-                    currentGameData = null;
+                    facade.updateGame(new GameData(currentGameData.gameID(), currentGameData.whiteUsername(),
+                            currentGameData.blackUsername(), currentGameData.gameName(), null), authToken);
                     //facade.updateGame();
                     return "End game.\n";
                 }
@@ -432,11 +437,15 @@ public class ChessClient {
 
         // Add code to update game for when player leaves to show empty spot
         // This could be done through the updateGame method
-        GameData editedGame;
+        GameData editedGame = null;
         if (teamColor == ChessGame.TeamColor.BLACK) {
             editedGame = new GameData(currentGameData.gameID(), currentGameData.whiteUsername(), null, currentGameData.gameName(),currentGameData.game());
-        } else {
+        }
+        else if (teamColor == ChessGame.TeamColor.WHITE){
             editedGame = new GameData(currentGameData.gameID(), null, currentGameData.blackUsername(), currentGameData.gameName(),currentGameData.game());
+        }
+        else {
+            throw new DataAccessException("leave teamColor error");
         }
         facade.updateGame(editedGame, authToken);
         gameState = GameState.OUT_OF_GAME;
@@ -468,6 +477,12 @@ public class ChessClient {
     private void assertInGame() throws DataAccessException {
         if (gameState == GameState.OUT_OF_GAME) {
             throw new DataAccessException("You must be in a game to use this command.");
+        }
+    }
+
+    private void assertNotResigned() throws DataAccessException {
+        if (currentGameData.game() == null) {
+            throw new DataAccessException("The game has ended due to resign.\n");
         }
     }
 
