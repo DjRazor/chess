@@ -1,8 +1,8 @@
 package server.websocket;
 
 import org.eclipse.jetty.websocket.api.Session;
+import webSocketMessages.Notification;
 
-import javax.management.Notification;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,11 +19,12 @@ public class ConnectionManager {
         connections.remove(authString);
     }
 
-    public void broadcast(String excludeUsername, Notification notification) throws IOException {
+    public void broadcast(String authString, Notification notification) throws IOException {
+        System.out.println("made to broadcast");
         var removeList = new ArrayList<Connection>();
         for (var c : connections.values()) {
             if (c.session.isOpen()) {
-                if (!c.authString.equals(excludeUsername)) {
+                if (!c.authString.equals(authString)) {
                     c.send(notification.toString());
                 }
             } else {

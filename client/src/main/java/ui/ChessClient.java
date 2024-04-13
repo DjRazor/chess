@@ -24,10 +24,10 @@ import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
 
 public class ChessClient {
     private LogState logState = LogState.OUT;
-    private UserGameCommand userGameCommand;
-    private ServerMessage serverMessage;
+
     private GameState gameState = GameState.OUT_OF_GAME;
     private final ServerFacade facade;
+    private WebSocketFacade ws;
     private final String serverURL;
     private String username = null;
     private String authToken;
@@ -35,14 +35,14 @@ public class ChessClient {
     private GameData currentGameData;
     private HashSet<ChessPosition> showEnds = new HashSet<>();
     private boolean showMovesEnabled;
-    private WebSocketFacade ws;
     private NotificationHandler notificationHandler;
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
 
-    public ChessClient(String serverURL) {
+    public ChessClient(String serverURL, NotificationHandler notificationHandler) {
         this.serverURL = serverURL;
         facade = new ServerFacade(serverURL);
+        this.notificationHandler = notificationHandler;
     }
 
     public String eval(String input) throws InvalidMoveException {
@@ -216,8 +216,8 @@ public class ChessClient {
                 setUserTeamColor(tempTeamColor);
                 if (teamColor == ChessGame.TeamColor.BLACK) {
                 }
-                //ws = new WebSocketFacade(serverURL, notificationHandler);
-                //ws.enterGame();
+                ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
+                ws.joinPlayer(Integer.parseInt(params[1]));
                 return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
             }
             return "Invalid color. Please try again.\n";
@@ -308,8 +308,6 @@ public class ChessClient {
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
 
-        showMovesEnabled = true;
-
         if (params.length == 1) {
             int col = convertLetterToInt(params[0].charAt(0));
             int row = Integer.parseInt(String.valueOf(params[0].charAt(1)));
@@ -321,12 +319,12 @@ public class ChessClient {
             if (moves.isEmpty()) {
                 return "No valid moves for " + params[0] + "\n";
             }
+
+            showMovesEnabled = true;
             showEnds = new HashSet<>();
             for (ChessMove move : moves) {
-                System.out.println(move.getEndPosition().getRow() + " " +  move.getEndPosition().getColumn());
                 showEnds.add(move.getEndPosition());
             }
-
             redraw();
             showMovesEnabled = false;
             return "Moves found.\n";
@@ -459,6 +457,8 @@ public class ChessClient {
             throw new DataAccessException("leave teamColor error");
         }
         facade.updateGame(editedGame, authToken);
+        ws.leave();
+        ws = null;
         gameState = GameState.OUT_OF_GAME;
         currentGameData = null;
         teamColor = null;

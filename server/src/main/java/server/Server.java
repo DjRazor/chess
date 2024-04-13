@@ -6,6 +6,7 @@ import dataAccess.*;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
+import server.websocket.WebSocketHandler;
 import service.AuthService;
 import service.GameService;
 import service.UserService;
@@ -35,7 +36,6 @@ public class Server {
         }
     }
 
-    ;
     private final UserService userService;
     {
         try {
@@ -45,6 +45,7 @@ public class Server {
         }
     }
 
+    private final WebSocketHandler webSocketHandler = new WebSocketHandler();
     //public Server() {}
 
     public static void main(String[] args) {
@@ -53,6 +54,8 @@ public class Server {
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
+
+        Spark.webSocket("/connect", webSocketHandler);
 
         Spark.staticFiles.location("web");
 
