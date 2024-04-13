@@ -33,6 +33,8 @@ public class ChessClient {
     private String authToken;
     private ChessGame.TeamColor teamColor;
     private GameData currentGameData;
+    private HashSet<ChessPosition> showEnds = new HashSet<>();
+    private boolean showMovesEnabled;
     private WebSocketFacade ws;
     private NotificationHandler notificationHandler;
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
@@ -306,6 +308,8 @@ public class ChessClient {
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
 
+        showMovesEnabled = true;
+
         if (params.length == 1) {
             int col = convertLetterToInt(params[0].charAt(0));
             int row = Integer.parseInt(String.valueOf(params[0].charAt(1)));
@@ -317,6 +321,14 @@ public class ChessClient {
             if (moves.isEmpty()) {
                 return "No valid moves for " + params[0] + "\n";
             }
+            showEnds = new HashSet<>();
+            for (ChessMove move : moves) {
+                System.out.println(move.getEndPosition().getRow() + " " +  move.getEndPosition().getColumn());
+                showEnds.add(move.getEndPosition());
+            }
+
+            redraw();
+            showMovesEnabled = false;
             return "Moves found.\n";
         }
         throw new DataAccessException("Expected 1 argument but " + params.length + " were given.");
@@ -326,8 +338,7 @@ public class ChessClient {
         assertSignIn();
         assertInGame();
 
-        // Pseudo code
-        // setBoard() method may be needed here, but also it may not lol
+        // Pseudocode:
         /*
         Get user input and convert into needed chess object (piece, move) (get color from board or game)
         mAkEmOvE
@@ -355,15 +366,15 @@ public class ChessClient {
                     int endRow = Integer.parseInt(String.valueOf(end.charAt(1)));
                     int startCol = convertLetterToInt(start.charAt(0));
                     int endCol = convertLetterToInt(end.charAt(0));
-                    System.out.println("Start pos: " + startRow + startCol);
+                    //System.out.println("Start pos: " + startRow + startCol);
                     if (startRow <= 8 && startRow >= 1 && endRow <= 8 && endRow >= 1) {
                         ChessGame.TeamColor currentColor = currentGameData.game().getTeamTurn();
-                        
+
                         ChessPosition startPos = new ChessPosition(startRow, startCol);
                         ChessPosition endPos = new ChessPosition(endRow, endCol);
                         
                         Collection<ChessMove> validMoves = currentGameData.game().validMoves(startPos);
-                        System.out.println("validMoves size before removals: " + validMoves.size());
+                        //System.out.println("validMoves size before removals: " + validMoves.size());
                         validMoves.removeIf(chessMove -> !chessMove.getStartPosition().equals(startPos)
                                 || !chessMove.getEndPosition().equals(endPos));
 
@@ -437,7 +448,7 @@ public class ChessClient {
 
         // Add code to update game for when player leaves to show empty spot
         // This could be done through the updateGame method
-        GameData editedGame = null;
+        GameData editedGame;
         if (teamColor == ChessGame.TeamColor.BLACK) {
             editedGame = new GameData(currentGameData.gameID(), currentGameData.whiteUsername(), null, currentGameData.gameName(),currentGameData.game());
         }
@@ -532,7 +543,13 @@ public class ChessClient {
 
         for (int i = 1; i < 9; i++) {
             // Alternates white and black spots
-            if (whiteSpot) {
+            if (!rev && showMovesEnabled && showEnds.contains(new ChessPosition(num, i))) {
+                setGreen(out);
+            }
+            else if (rev && showMovesEnabled && showEnds.contains(new ChessPosition(num, 9 - i))) {
+                setGreen(out);
+            }
+            else if (whiteSpot) {
                 setWhite(out);
             } else {
                 setBlack(out);
@@ -544,7 +561,7 @@ public class ChessClient {
             if (!rev) {
                 currentPos = new ChessPosition(num, i);
             } else {
-                currentPos = new ChessPosition(9 - num, 9 - i);
+                currentPos = new ChessPosition(num, 9 - i);
             }
             ChessPiece currentPiece = currentGameData.game().getBoard().getPiece(currentPos);
             if (currentPiece != null) {
@@ -569,6 +586,9 @@ public class ChessClient {
     }
     private static void setBlack(PrintStream out) {
         out.print(SET_BG_COLOR_BLACK);
+    }
+    private static void setGreen(PrintStream out) {
+        out.print(SET_BG_COLOR_DARK_GREEN);
     }
     private String convertPiece(ChessPiece piece) {
         if (piece.getPieceType() == ChessPiece.PieceType.PAWN) {
