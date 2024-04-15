@@ -1,7 +1,10 @@
 package ui.websocket;
 
-import webSocketMessages.Notification;
+import dataAccess.DataAccessException;
+import webSocketMessages.serverMessages.ServerMessage;
+import webSocketMessages.serverMessages.ServerNotification;
 
 public interface NotificationHandler {
-    void notify(Notification notification);
+    void notify(String message);
+    void loadGame(String message);
 }

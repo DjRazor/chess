@@ -1,15 +1,25 @@
 package server.websocket;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
-import dataAccess.AuthDAO;
-import dataAccess.DataAccessException;
-import dataAccess.SqlAuthDAO;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import dataAccess.*;
+import model.GameData;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
+import server.ServerFacade;
 import webSocketMessages.Notification;
+import webSocketMessages.serverMessages.Error;
+import webSocketMessages.serverMessages.LoadGame;
+import webSocketMessages.serverMessages.ServerMessage;
+import webSocketMessages.serverMessages.ServerNotification;
+import webSocketMessages.userCommands.JoinPlayer;
+import webSocketMessages.userCommands.MakeMove;
 import webSocketMessages.userCommands.UserGameCommand;
 
 import java.io.IOException;
@@ -18,11 +28,18 @@ import java.io.IOException;
 public class WebSocketHandler {
     // use UserCommand/ServerMessage
     private final ConnectionManager connections = new ConnectionManager();
-    private AuthDAO authDAO;
-
+    private final AuthDAO authDAO;
     {
         try {
             authDAO = new SqlAuthDAO();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private final GameDAO gameDAO;
+    {
+        try {
+            gameDAO = new SqlGameDAO();
         } catch (DataAccessException e) {
             throw new RuntimeException(e);
         }
@@ -31,11 +48,14 @@ public class WebSocketHandler {
     @OnWebSocketMessage
     public void onMessage(Session session, String message) throws IOException, DataAccessException {
         System.out.println("WSH received message: " + message);
-        var cmd = new Gson().fromJson(message, UserGameCommand.class);
+        UserGameCommand cmd = new Gson().fromJson(message, UserGameCommand.class);
         switch (cmd.getCommandType()) {
-            case JOIN_PLAYER -> joinPlayer(cmd.getAuthString(), session);
+            case JOIN_PLAYER -> {
+                JoinPlayer joinCmd = new Gson().fromJson(message, JoinPlayer.class);
+                joinPlayer(joinCmd, session);
+            }
             case JOIN_OBSERVER -> joinObserver();
-            case MAKE_MOVE -> makeMove();
+            //case MAKE_MOVE -> makeMove();
             case LEAVE -> leave(cmd.getAuthString());
             case RESIGN -> resign();
         }
@@ -47,20 +67,39 @@ public class WebSocketHandler {
     }
 
     // private void CMD for each cmd in UserGameCommand
-    private void joinPlayer(String authString, Session session) throws DataAccessException, IOException {
-        connections.add(authString, session);
-        var username = authDAO.usernameForAuth(authString);
-        System.out.println("added " + username + " to connections\n");
-        var message = String.format("%s has entered the game", username);
-        var notification = new Notification(UserGameCommand.CommandType.JOIN_PLAYER, message);
-        connections.broadcast(authString, notification);
+    private void joinPlayer(JoinPlayer joinCmd, Session session) throws DataAccessException, IOException {
+        // Checks if spot is taken
+        var username = authDAO.usernameForAuth(joinCmd.getAuthString());
+        boolean avail = connections.checkAvail(joinCmd.getGameID(), joinCmd.getPlayerColor());
+        boolean userFound = connections.userFound(username);
+        boolean validAuth = authDAO.validateAuth(joinCmd.getAuthString());
+        boolean gameIDInUse = gameDAO.gameIDInUse(joinCmd.getGameID());
+        boolean properColor;
+        if (userFound) {
+            properColor = connections.properColor(username, joinCmd.getPlayerColor());
+        } else {
+            properColor = true;
+        }
+        if (avail && properColor && validAuth && gameIDInUse) {
+            connections.add(username, joinCmd.getAuthString(), joinCmd.getGameID(), joinCmd.getPlayerColor(), session);
+            System.out.println("added " + username + " to connections\n");
+            var message = String.format("%s has entered the game as %s.", username, joinCmd.getPlayerColor());
+            var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
+            connections.broadcast(joinCmd.getAuthString(), notification);
+            var loadGame = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, "loaded game", "game hold");
+            connections.broadcastGame(joinCmd.getAuthString(), joinCmd.getGameID(), loadGame);
+        } else {
+            System.out.println("EXISTING USER");
+            var error = new Error(ServerMessage.ServerMessageType.ERROR, "Taken spot/Wrong Team");
+            connections.broadcastToOne(session, error);
+        }
     }
 
     private void joinObserver() {
 
     }
 
-    private void makeMove() {
+    private void makeMove(MakeMove makeMoveCmd) {
 
     }
 
@@ -68,7 +107,7 @@ public class WebSocketHandler {
         connections.remove(authString);
         var username = authDAO.usernameForAuth(authString);
         var message = String.format("%s has left the game", username);
-        var notification = new Notification(UserGameCommand.CommandType.LEAVE, message);
+        var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
         connections.broadcast(username, notification);
     }
 

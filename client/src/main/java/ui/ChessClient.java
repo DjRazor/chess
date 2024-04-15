@@ -199,8 +199,8 @@ public class ChessClient {
 
         if (params.length == 2) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
+            ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
             if (joinStatus.entrySet().isEmpty()) {
-
                 // Print boards
                 PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
                 out.print(ERASE_SCREEN);
@@ -214,12 +214,12 @@ public class ChessClient {
                 gameState = GameState.IN_GAME;
                 String tempTeamColor = params[0].toUpperCase();
                 setUserTeamColor(tempTeamColor);
-                if (teamColor == ChessGame.TeamColor.BLACK) {
-                }
-                ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
-                ws.joinPlayer(Integer.parseInt(params[1]));
+
+                ws.joinPlayer(Integer.parseInt(params[1]), teamColor);
                 return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
             }
+            ws.joinPlayer(Integer.parseInt(params[1]), null);
+            System.out.println("sent null playerColor in joinPlayer");
             return "Invalid color. Please try again.\n";
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
@@ -231,16 +231,7 @@ public class ChessClient {
         if (params.length == 1) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
             if (joinStatus.entrySet().isEmpty()) {
-                // Print boards
-//                PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
-//                out.print(ERASE_SCREEN);
-//
-//                drawBoard1(out);
-//                out.println("\u001B[0m");
-//                drawBoard2(out);
-//
-//                // Resets all attributes to default
-//                out.println("\u001B[0m");
+
                 redraw();
 
                 return "Observing game " + params[0];
@@ -457,7 +448,7 @@ public class ChessClient {
             throw new DataAccessException("leave teamColor error");
         }
         facade.updateGame(editedGame, authToken);
-        ws.leave();
+        ws.leave(currentGameData.gameID());
         ws = null;
         gameState = GameState.OUT_OF_GAME;
         currentGameData = null;
