@@ -56,7 +56,7 @@ public class WebSocketHandler {
             }
             case JOIN_OBSERVER -> {
                 JoinObserver joinObserverCmd = new Gson().fromJson(message, JoinObserver.class);
-                joinObserver(joinObserverCmd);
+                joinObserver(joinObserverCmd, session);
             }
             case MAKE_MOVE -> {
                 MakeMove makeMoveCmd = new Gson().fromJson(message, MakeMove.class);
@@ -107,8 +107,22 @@ public class WebSocketHandler {
         }
     }
 
-    private void joinObserver(JoinObserver joinObserverCmd) {
-
+    private void joinObserver(JoinObserver joinObserverCmd, Session session) throws DataAccessException, IOException {
+        boolean gameIDInUse = gameDAO.gameIDInUse(joinObserverCmd.getGameID());
+        boolean validAuth = authDAO.validateAuth(joinObserverCmd.getAuthString());
+        if (gameIDInUse && validAuth) {
+            var username = authDAO.usernameForAuth(joinObserverCmd.getAuthString());
+            connections.add(username, joinObserverCmd.getAuthString(), joinObserverCmd.getGameID(), null, session);
+            var message = String.format("%s is observing the game", username);
+            var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
+            connections.broadcast(joinObserverCmd.getAuthString(), notification);
+            var loadGame = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME,
+                    "You are now observing game: " + joinObserverCmd.getGameID(), "game hold");
+            connections.broadcastToOne(session, loadGame);
+        } else {
+            var error = new Error(ServerMessage.ServerMessageType.ERROR, "WSH: Invalid auth/gameID");
+            connections.broadcastToOne(session, error);
+        }
     }
 
     private void makeMove(MakeMove makeMoveCmd, Session session) throws DataAccessException, IOException, InvalidMoveException {

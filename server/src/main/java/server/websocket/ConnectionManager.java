@@ -68,7 +68,7 @@ public class ConnectionManager {
         }
     }
 
-    public void broadcastToOne(Session session, Error serverMessage) throws IOException {
+    public void broadcastToOne(Session session, ServerMessage serverMessage) throws IOException {
         System.out.println("made it to broadcastToOne");
         if (session.isOpen()) {
             session.getRemote().sendString(new Gson().toJson(serverMessage));
@@ -78,7 +78,7 @@ public class ConnectionManager {
     public boolean checkAvail(Integer gameID, ChessGame.TeamColor teamColor) {
         for (var c : connections.values()) {
             if (c.session.isOpen()) {
-                if (Objects.equals(c.gameID, gameID) && c.teamColor.equals(teamColor)) {
+                if (Objects.equals(c.gameID, gameID) && teamColor.equals(c.teamColor)) {
                     System.out.println("Failed checkAvail");
                     return false;
                 }

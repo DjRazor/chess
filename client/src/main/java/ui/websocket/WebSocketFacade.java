@@ -10,10 +10,7 @@ import webSocketMessages.serverMessages.Error;
 import webSocketMessages.serverMessages.LoadGame;
 import webSocketMessages.serverMessages.ServerMessage;
 import webSocketMessages.serverMessages.ServerNotification;
-import webSocketMessages.userCommands.JoinPlayer;
-import webSocketMessages.userCommands.Leave;
-import webSocketMessages.userCommands.MakeMove;
-import webSocketMessages.userCommands.UserGameCommand;
+import webSocketMessages.userCommands.*;
 
 
 import javax.websocket.*;
@@ -77,6 +74,11 @@ public class WebSocketFacade extends Endpoint {
         } catch (IOException ex) {
             throw new DataAccessException("WSF joinPlayer error: " + ex.getMessage());
         }
+    }
+
+    public void joinObserver(Integer gameID) throws IOException {
+        JoinObserver joinObserver = new JoinObserver(authString, gameID);
+        this.session.getBasicRemote().sendText(new Gson().toJson(joinObserver));
     }
 
     public void leave(Integer gameID) throws DataAccessException {
