@@ -336,6 +336,7 @@ public class ChessClient {
         assertNotResigned();
         Character[] charLetters = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 
+        // JUST create ChessMove, pass in to WSF
         if (params.length == 2) { // Checks param length
             if (params[0].length() == 2 && params[1].length() == 2) { // Checks if valid spot
                 String start = params[0].toLowerCase();
@@ -355,34 +356,13 @@ public class ChessClient {
                     int endRow = Integer.parseInt(String.valueOf(end.charAt(1)));
                     int startCol = convertLetterToInt(start.charAt(0));
                     int endCol = convertLetterToInt(end.charAt(0));
-                    //System.out.println("Start pos: " + startRow + startCol);
-                    if (startRow <= 8 && startRow >= 1 && endRow <= 8 && endRow >= 1) {
-                        ChessGame.TeamColor currentColor = currentGameData.game().getTeamTurn();
 
+                    if (startRow <= 8 && startRow >= 1 && endRow <= 8 && endRow >= 1) {
                         ChessPosition startPos = new ChessPosition(startRow, startCol);
                         ChessPosition endPos = new ChessPosition(endRow, endCol);
-                        
-                        Collection<ChessMove> validMoves = currentGameData.game().validMoves(startPos);
-                        //System.out.println("validMoves size before removals: " + validMoves.size());
-                        validMoves.removeIf(chessMove -> !chessMove.getStartPosition().equals(startPos)
-                                || !chessMove.getEndPosition().equals(endPos));
+                        ChessMove move = new ChessMove(startPos, endPos, null);
+                        ws.makeMove(currentGameData.gameID(), move);
 
-                        if (validMoves.isEmpty()) {
-                            throw new DataAccessException("Not a valid move.");
-                        }
-                        // if the size is > 0, it could only be because the piece
-                        // is a pawn and can be promoted
-                        else {
-                            if (validMoves.size() > 1) {
-                                ChessPiece promoPiece = getPromoPiece(currentColor);
-                                currentGameData.game().makeMove(new ChessMove(startPos, endPos, promoPiece.getPieceType()));
-                            }
-                            else {
-                                currentGameData.game().makeMove(new ChessMove(startPos, endPos, null));
-                            }
-                            facade.updateGame(currentGameData, authToken);
-                            redraw();
-                        }
                         return "Moved " + params[0] + " to " + params[1] + "\n";
                     }
                     throw new DataAccessException("Invalid number in move.");
@@ -392,21 +372,6 @@ public class ChessClient {
             throw new DataAccessException("Invalid spot. Please try again.");
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
-    }
-
-    private static ChessPiece getPromoPiece(ChessGame.TeamColor currentColor) {
-        Scanner promoScan = new Scanner(System.in);
-        while (true) {
-            System.out.println("Enter desired promo piece letter(Q,N,R,B):");
-            String line = promoScan.nextLine();
-            line = line.toUpperCase();
-            switch (line) {
-                case "Q" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.QUEEN); }
-                case "B" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.BISHOP); }
-                case "N" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.KNIGHT); }
-                case "R" -> { return new ChessPiece(currentColor, ChessPiece.PieceType.ROOK); }
-            }
-        }
     }
 
     public String resign() throws DataAccessException {

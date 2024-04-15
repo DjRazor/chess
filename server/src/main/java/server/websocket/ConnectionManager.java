@@ -56,6 +56,7 @@ public class ConnectionManager {
         }
     }
 
+    // May need to make separate broadcastGameAll
     public void broadcastGame(String authToken, Integer gameID, LoadGame loadGame) throws IOException {
         System.out.println("made it to broadcastGame");
         for (var c : connections.values()) {

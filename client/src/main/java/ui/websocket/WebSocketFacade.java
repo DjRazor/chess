@@ -90,7 +90,7 @@ public class WebSocketFacade extends Endpoint {
         }
     }
 
-    public void makeMove(Integer gameID, ChessMove move, boolean valid) throws DataAccessException {
+    public void makeMove(Integer gameID, ChessMove move) throws DataAccessException {
         try {
             MakeMove makeMove = new MakeMove(authString, gameID, move);
             this.session.getBasicRemote().sendText(new Gson().toJson(makeMove));

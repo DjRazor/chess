@@ -31,6 +31,27 @@ public class SqlGameDAO implements GameDAO{
         String gameJson = new Gson().toJson(gameData.game());
         executeUpdate(statement, gameData.whiteUsername(), gameData.blackUsername(), gameJson, gameData.gameID());
     }
+    public GameData getGame(int gameID) throws DataAccessException {
+        configureDatabase();
+        var statement = "SELECT * FROM games WHERE gameID = ?";
+        try (var conn = DatabaseManager.getConnection()) {
+            try (var ps = conn.prepareStatement(statement)) {
+                ps.setInt(1, gameID);
+                try (var rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String whiteUsername = rs.getString("whiteUsername");
+                        String blackUsername = rs.getString("blackUsername");
+                        String gameName = rs.getString("gameName");
+                        ChessGame chessGame = new Gson().fromJson(rs.getString("ChessGame"), ChessGame.class);
+                        return new GameData(gameID,whiteUsername, blackUsername, gameName, chessGame);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("getGame SqlGameDAO error: " + ex.getMessage());
+        }
+        return null;
+    }
     public boolean gameIDInUse(int gameID) throws DataAccessException {
         configureDatabase();
         var gameIDs = new ArrayList<>();

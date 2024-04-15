@@ -1,5 +1,6 @@
 package dataAccess;
 
+import chess.ChessGame;
 import com.google.gson.JsonObject;
 import model.GameData;
 
@@ -53,5 +54,9 @@ public class MemoryGameDAO implements GameDAO {
 
     public void clear() {
         games = new HashSet<>();
+    }
+
+    public GameData getGame(int gameID) {
+        return null;
     }
 }
