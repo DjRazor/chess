@@ -15,6 +15,7 @@ import ui.websocket.WebSocketFacade;
 import webSocketMessages.serverMessages.ServerMessage;
 import webSocketMessages.userCommands.UserGameCommand;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -45,7 +46,7 @@ public class ChessClient {
         this.notificationHandler = notificationHandler;
     }
 
-    public String eval(String input) throws InvalidMoveException {
+    public String eval(String input) throws InvalidMoveException, IOException {
         try {
             var tokens = input.toLowerCase().split(" ");
             var cmd = (tokens.length > 0) ? tokens[0] : "help";
@@ -201,16 +202,6 @@ public class ChessClient {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
             ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
             if (joinStatus.entrySet().isEmpty()) {
-                // Print boards
-                PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
-                out.print(ERASE_SCREEN);
-
-                drawBoard1(out);
-                out.println("\u001B[0m");
-                drawBoard2(out);
-
-                // Resets all attributes to default
-                out.println("\u001B[0m");
                 gameState = GameState.IN_GAME;
                 String tempTeamColor = params[0].toUpperCase();
                 setUserTeamColor(tempTeamColor);
@@ -224,14 +215,14 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
     }
-    public String joinObserver(String... params) throws DataAccessException {
+    public String joinObserver(String... params) throws DataAccessException, IOException {
         assertSignIn();
         assertOutOfGame();
         // NEW WS FACADE ws.enterGame(username)
         if (params.length == 1) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
             if (joinStatus.entrySet().isEmpty()) {
-
+                ws.joinObserver(Integer.parseInt(params[0]));
                 redraw();
 
                 return "Observing game " + params[0];
@@ -331,6 +322,9 @@ public class ChessClient {
         /*
         Get user input and convert into needed chess object (piece, move) (get color from board or game)
         mAkEmOvE
+
+        FOR PAWN PROMO:
+        ask for promo with getPiecePromo (get back from ws), then send THAT into WSF
          */
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();

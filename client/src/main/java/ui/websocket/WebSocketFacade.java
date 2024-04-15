@@ -100,4 +100,9 @@ public class WebSocketFacade extends Endpoint {
             throw new DataAccessException("WSF makeMove error: " + ex.getMessage());
         }
     }
+
+    public void resign(Integer gameID) throws IOException {
+        Resign resign = new Resign(authString, gameID);
+        this.session.getBasicRemote().sendText(new Gson().toJson(resign));
+    }
 }

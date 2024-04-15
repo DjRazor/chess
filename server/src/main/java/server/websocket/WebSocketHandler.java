@@ -73,26 +73,27 @@ public class WebSocketHandler {
         }
     }
 
-    @OnWebSocketError
-    public void onError(Throwable throwable) throws Throwable {
-        throw throwable;
-    }
-
     // private void CMD for each cmd in UserGameCommand
     private void joinPlayer(JoinPlayer joinCmd, Session session) throws DataAccessException, IOException {
         // Checks if spot is taken
         var username = authDAO.usernameForAuth(joinCmd.getAuthString());
         boolean avail = connections.checkAvail(joinCmd.getGameID(), joinCmd.getPlayerColor());
-        boolean userFound = connections.userFound(username);
+        boolean userFound = connections.userFound(joinCmd.getAuthString());
         boolean validAuth = authDAO.validateAuth(joinCmd.getAuthString());
         boolean gameIDInUse = gameDAO.gameIDInUse(joinCmd.getGameID());
+        boolean misMatch = connections.misMatch(username);
         boolean properColor;
         if (userFound) {
             properColor = connections.properColor(username, joinCmd.getPlayerColor());
         } else {
             properColor = true;
         }
-        if (avail && properColor && validAuth && gameIDInUse) {
+        if (misMatch && userFound) {
+            System.out.println("Mismatch");
+            var error = new Error(ServerMessage.ServerMessageType.ERROR, "Taken spot/Wrong Team");
+            connections.broadcastToOne(session, error);
+        }
+        else if (avail && properColor && validAuth && gameIDInUse) {
             connections.add(username, joinCmd.getAuthString(), joinCmd.getGameID(), joinCmd.getPlayerColor(), session);
             System.out.println("added " + username + " to connections\n");
             var message = String.format("%s has entered the game as %s.", username, joinCmd.getPlayerColor());
@@ -130,11 +131,16 @@ public class WebSocketHandler {
         ChessBoard currentBoard = currentGameData.game().getBoard();
         ChessMove move = makeMoveCmd.getMove();
         var validMoves = currentGameData.game().validMoves(move.getStartPosition());
-
+        ChessGame.TeamColor currentColor = currentGameData.game().getTeamTurn();
+        ChessGame.TeamColor userColor = connections.getTeamColor(makeMoveCmd.getAuthString());
         validMoves.removeIf(mv -> !mv.getStartPosition().equals(move.getStartPosition())
                 || mv.getEndPosition().equals(move.getEndPosition()));
 
-        if (validMoves.isEmpty()) {
+        if (!currentColor.equals(userColor)) {
+            var error = new Error(ServerMessage.ServerMessageType.ERROR, "Not your turn.");
+            connections.broadcastToOne(session, error);
+        }
+        else if (validMoves.isEmpty()) {
             //throw new DataAccessException("Not a valid move.");
             //Send Error
             var error = new Error(ServerMessage.ServerMessageType.ERROR, "Not a valid move");
@@ -156,20 +162,25 @@ public class WebSocketHandler {
             var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
             connections.broadcast(makeMoveCmd.getAuthString(), notification);
             var gameUpdate = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, "", "game game");
-            connections.broadcastGame(makeMoveCmd.getAuthString(), makeMoveCmd.getGameID(), gameUpdate);
+            connections.broadcastGameAll(makeMoveCmd.getGameID(), gameUpdate);
         }
     }
 
     private void leave(String authString) throws DataAccessException, IOException {
         connections.remove(authString);
         var username = authDAO.usernameForAuth(authString);
-        var message = String.format("%s has left the game", username);
+        var message = String.format("%s has left the game.", username);
         var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
         connections.broadcast(username, notification);
     }
 
-    private void resign(Resign resignCmd) {
-
+    private void resign(Resign resignCmd) throws DataAccessException, IOException {
+        GameData currentGameData = gameDAO.getGame(resignCmd.getGameID());
+        currentGameData.game().setBoard(null);
+        gameDAO.updateGame(currentGameData);
+        var message = String.format("%s has resigned. Game over.", authDAO.usernameForAuth(resignCmd.getAuthString()));
+        var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
+        connections.broadcast(resignCmd.getAuthString(), notification);
     }
 
     private String convertIntToLetter(int num) {

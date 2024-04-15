@@ -47,8 +47,26 @@ public class ConnectionManager {
                     c.send(new Gson().toJson(serverMessage));
                 }
             } else {
+                System.out.println("removed session: " + c);
                 removeList.add(c);
-                System.out.println("didn't broadcast to " + c);
+            }
+        }
+        for (var c : removeList) {
+            connections.remove(c.authToken);
+        }
+    }
+
+    public void broadcastAll(Integer gameID, ServerMessage serverMessage) throws IOException {
+        System.out.println("made to broadcastAll");
+        var removeList = new ArrayList<Connection>();
+        for (var c : connections.values()) {
+            if (c.session.isOpen()) {
+                if (c.gameID.equals(gameID)) {
+                    c.send(new Gson().toJson(serverMessage));
+                }
+            } else {
+                System.out.println("removed session: " + c);
+                removeList.add(c);
             }
         }
         for (var c : removeList) {
@@ -62,6 +80,16 @@ public class ConnectionManager {
         for (var c : connections.values()) {
             if (c.session.isOpen()) {
                 if (Objects.equals(c.gameID, gameID) && c.authToken.equals(authToken)) {
+                    c.send(new Gson().toJson(loadGame));
+                }
+            }
+        }
+    }
+
+    public void broadcastGameAll(Integer gameID, LoadGame loadGame) throws IOException {
+        for (var c : connections.values()) {
+            if (c.session.isOpen()) {
+                if (Objects.equals(c.gameID, gameID)) {
                     c.send(new Gson().toJson(loadGame));
                 }
             }
@@ -97,12 +125,34 @@ public class ConnectionManager {
         return false;
     }
 
-    public boolean userFound(String username) {
+    public boolean userFound(String authToken) {
+        for (var c : connections.values()) {
+            if (c.session.isOpen()) {
+                if (c.authToken.equals(authToken)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean misMatch(String username) {
         for (var c : connections.values()) {
             if (c.username.equals(username)) {
                 return true;
             }
         }
         return false;
+    }
+
+    public ChessGame.TeamColor getTeamColor(String authToken) {
+        for (var c : connections.values()) {
+            if (c.session.isOpen()) {
+                if (c.authToken.equals(authToken)) {
+                    return c.teamColor;
+                }
+            }
+        }
+        return null;
     }
 }
