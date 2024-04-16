@@ -19,13 +19,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
 import static ui.EscapeSequences.*;
 import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
 
 public class ChessClient {
     private LogState logState = LogState.OUT;
-
+    private ChessClientHelper chessClientHelper;
     private GameState gameState = GameState.OUT_OF_GAME;
     private final ServerFacade facade;
     private WebSocketFacade ws;
@@ -291,7 +290,7 @@ public class ChessClient {
         assertNotResigned();
 
         if (params.length == 1) {
-            int col = convertLetterToInt(params[0].charAt(0));
+            int col = chessClientHelper.convertLetterToInt(params[0].charAt(0));
             int row = Integer.parseInt(String.valueOf(params[0].charAt(1)));
             boolean emptySpot = currentGameData.game().getBoard().getPiece(new ChessPosition(row, col)) == null;
             if (emptySpot) {
@@ -348,8 +347,8 @@ public class ChessClient {
                 if (validLetter && validLetter2) {
                     int startRow = Integer.parseInt(String.valueOf(start.charAt(1)));
                     int endRow = Integer.parseInt(String.valueOf(end.charAt(1)));
-                    int startCol = convertLetterToInt(start.charAt(0));
-                    int endCol = convertLetterToInt(end.charAt(0));
+                    int startCol = chessClientHelper.convertLetterToInt(start.charAt(0));
+                    int endCol = chessClientHelper.convertLetterToInt(end.charAt(0));
 
                     if (startRow <= 8 && startRow >= 1 && endRow <= 8 && endRow >= 1) {
                         ChessPosition startPos = new ChessPosition(startRow, startCol);
@@ -494,15 +493,15 @@ public class ChessClient {
         for (int i = 1; i < 9; i++) {
             // Alternates white and black spots
             if (!rev && showMovesEnabled && showEnds.contains(new ChessPosition(num, i))) {
-                setGreen(out);
+                chessClientHelper.setGreen(out);
             }
             else if (rev && showMovesEnabled && showEnds.contains(new ChessPosition(num, 9 - i))) {
-                setGreen(out);
+                chessClientHelper.setGreen(out);
             }
             else if (whiteSpot) {
-                setWhite(out);
+                chessClientHelper.setWhite(out);
             } else {
-                setBlack(out);
+                chessClientHelper.setBlack(out);
             }
             whiteSpot = !whiteSpot;
 
@@ -517,10 +516,10 @@ public class ChessClient {
             if (currentPiece != null) {
                 if (currentPiece.getTeamColor() == ChessGame.TeamColor.WHITE) {
                     out.print(SET_TEXT_COLOR_BLUE);
-                    out.print(" " + convertPiece(currentPiece) + " ");
+                    out.print(" " + chessClientHelper.convertPiece(currentPiece) + " ");
                 } else if (currentPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
                     out.print(SET_TEXT_COLOR_RED);
-                    out.print(" " + convertPiece(currentPiece) + " ");
+                    out.print(" " + chessClientHelper.convertPiece(currentPiece) + " ");
                 }
             } else {
                 out.print("   ");
@@ -531,76 +530,6 @@ public class ChessClient {
         out.print(SET_TEXT_COLOR_WHITE);
         out.println(" " + num + " ");
     }
-    private static void setWhite(PrintStream out) {
-        out.print(SET_BG_COLOR_WHITE);
-    }
-    private static void setBlack(PrintStream out) {
-        out.print(SET_BG_COLOR_BLACK);
-    }
-    private static void setGreen(PrintStream out) {
-        out.print(SET_BG_COLOR_DARK_GREEN);
-    }
-    private String convertPiece(ChessPiece piece) {
-        if (piece.getPieceType() == ChessPiece.PieceType.PAWN) {
-            return "P";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.BISHOP) {
-            return "B";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.ROOK) {
-            return "R";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.KNIGHT) {
-            return "N";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.KING) {
-            return "K";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.QUEEN) {
-            return "Q";
-        }
-        return null;
-    }
-
-    private String convertPieceToString(String param) {
-        String upperParam = param.toUpperCase();
-        if (upperParam.equals("P")) {
-            return "Pawn";
-        }
-        if (upperParam.equals("R")) {
-            return "Rook";
-        }
-        if (upperParam.equals("N")) {
-            return "Knight";
-        }
-        if (upperParam.equals("B")) {
-            return "Bishop";
-        }
-        if (upperParam.equals("Q")) {
-            return "Queen";
-        }
-        if (upperParam.equals("K")) {
-            return "Knight";
-        }
-        return null;
-    }
-
-    private int convertLetterToInt(char letter) {
-        int i;
-        switch (letter) {
-            case 'a' -> i = 1;
-            case 'b' -> i = 2;
-            case 'c' -> i = 3;
-            case 'd' -> i = 4;
-            case 'e' -> i = 5;
-            case 'f' -> i = 6;
-            case 'g' -> i = 7;
-            case 'h' -> i = 8;
-            default -> i = 0;
-        }
-        return i;
-    }
-
     private void setUserTeamColor(String color) throws DataAccessException {
         if (color.equals("BLACK")) {
             teamColor = ChessGame.TeamColor.BLACK;
