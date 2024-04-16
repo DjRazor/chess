@@ -53,8 +53,6 @@ public class Repl implements NotificationHandler {
         try {
             client.redraw();
             System.out.println(message);
-        } catch (DataAccessException e) {
-            throw new RuntimeException(e);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

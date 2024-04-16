@@ -5,7 +5,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import dataAccess.DataAccessException;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
@@ -79,7 +78,7 @@ public class ChessClient {
             authToken = regRes.authToken();
             return "Successful register for user: " + params[0] + "\n";
         }
-        throw new DataAccessException("Expected 3 arguments, but " + params.length + " were given.");
+        throw new Exception("Expected 3 arguments, but " + params.length + " were given.");
     }
     public String login(String... params) throws Exception {
         assertOutOfGame();
@@ -93,7 +92,7 @@ public class ChessClient {
             authToken = loginRes.authToken();
             return "Successful login for user: " + params[0] + "\n";
         }
-        throw new DataAccessException("Expected 2 arguments, but received " + params.length);
+        throw new Exception("Expected 2 arguments, but received " + params.length);
     }
     public String logout() throws Exception {
         assertOutOfGame();
@@ -118,7 +117,7 @@ public class ChessClient {
             }
             return game.toString();
         }
-        throw new DataAccessException("Expected 1 argument, but " + params.length + " were given.\n");
+        throw new Exception("Expected 1 argument, but " + params.length + " were given.\n");
     }
     public String listGames() throws Exception {
         assertSignIn();
@@ -179,7 +178,7 @@ public class ChessClient {
         for (JsonElement elem : gamesArray) {
             JsonObject gameElem = elem.getAsJsonObject();
             if (!gameElem.has("gameID")) {
-                throw new DataAccessException("wack, no gameID!\n");
+                throw new Exception("wack, no gameID!\n");
             }
             if (gameElem.get("gameID").getAsString().equals(gameID)) {
                 currentGameData = new Gson().fromJson(gameElem, GameData.class);
@@ -209,7 +208,7 @@ public class ChessClient {
             System.out.println("sent null playerColor in joinPlayer");
             return "Invalid color. Please try again.\n";
         }
-        throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
+        throw new Exception("Expected 2 arguments but " + params.length + " were given.\n");
     }
     public String joinObserver(String... params) throws Exception {
         assertSignIn();
@@ -224,7 +223,7 @@ public class ChessClient {
                 return "Observing game " + params[0];
             }
         }
-        throw new DataAccessException("Expected 1 argument but " + params.length + " were given.\n");
+        throw new Exception("Expected 1 argument but " + params.length + " were given.\n");
     }
     public String help() {
         if (logState == LogState.OUT) {
@@ -307,7 +306,7 @@ public class ChessClient {
             showMovesEnabled = false;
             return "Moves found.\n";
         }
-        throw new DataAccessException("Expected 1 argument but " + params.length + " were given.");
+        throw new Exception("Expected 1 argument but " + params.length + " were given.");
     }
 
     public String makeMove(String ...params) throws Exception {
@@ -355,16 +354,16 @@ public class ChessClient {
 
                         return "Moved " + params[0] + " to " + params[1] + "\n";
                     }
-                    throw new DataAccessException("Invalid number in move.");
+                    throw new Exception("Invalid number in move.");
                 }
-                throw new DataAccessException("Invalid letter in move.");
+                throw new Exception("Invalid letter in move.");
             }
-            throw new DataAccessException("Invalid spot. Please try again.");
+            throw new Exception("Invalid spot. Please try again.");
         }
-        throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
+        throw new Exception("Expected 2 arguments but " + params.length + " were given.\n");
     }
 
-    public String resign() throws DataAccessException, IOException {
+    public String resign() throws Exception {
         assertSignIn();
         assertInGame();
         Scanner resScan = new Scanner(System.in);
@@ -400,7 +399,7 @@ public class ChessClient {
             editedGame = new GameData(currentGameData.gameID(), null, currentGameData.blackUsername(), currentGameData.gameName(),currentGameData.game());
         }
         else {
-            throw new DataAccessException("leave teamColor error");
+            throw new Exception("leave teamColor error");
         }
         facade.updateGame(editedGame, authToken);
         ws.leave(currentGameData.gameID());
@@ -425,27 +424,27 @@ public class ChessClient {
         currentGameData = null;
         return "Database has been cleared\n";
     }
-    private void assertSignIn() throws DataAccessException {
+    private void assertSignIn() throws Exception {
         if (logState == LogState.OUT) {
-            throw new DataAccessException("You must sign in or register.");
+            throw new Exception("You must sign in or register.");
         }
     }
 
-    private void assertInGame() throws DataAccessException {
+    private void assertInGame() throws Exception {
         if (gameState == GameState.OUT_OF_GAME) {
-            throw new DataAccessException("You must be in a game to use this command.");
+            throw new Exception("You must be in a game to use this command.");
         }
     }
 
-    private void assertNotResigned() throws DataAccessException {
+    private void assertNotResigned() throws Exception {
         if (currentGameData.game() == null) {
-            throw new DataAccessException("The game has ended due to resign.\n");
+            throw new Exception("The game has ended due to resign.\n");
         }
     }
 
-    private void assertOutOfGame() throws DataAccessException {
+    private void assertOutOfGame() throws Exception {
         if (gameState == GameState.IN_GAME) {
-            throw new DataAccessException("You cannot use this command while in game.");
+            throw new Exception("You cannot use this command while in game.");
         }
     }
 
@@ -527,13 +526,13 @@ public class ChessClient {
         out.print(SET_TEXT_COLOR_WHITE);
         out.println(" " + num + " ");
     }
-    private void setUserTeamColor(String color) throws DataAccessException {
+    private void setUserTeamColor(String color) throws Exception {
         if (color.equals("BLACK")) {
             teamColor = ChessGame.TeamColor.BLACK;
         } else if (color.equals("WHITE")) {
             teamColor = ChessGame.TeamColor.WHITE;
         } else {
-            throw new DataAccessException("Error setting User team color.");
+            throw new Exception("Error setting User team color.");
         }
     }
 }
