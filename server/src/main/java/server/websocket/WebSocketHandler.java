@@ -150,8 +150,8 @@ public class WebSocketHandler {
         // is a pawn and can be promoted
         else {
             if (validMoves.size() > 1) {
-                ChessPiece promoPiece = getPromoPiece(currentGameData.game().getTeamTurn());
-                currentGameData.game().makeMove(new ChessMove(move.getStartPosition(), move.getEndPosition(), promoPiece.getPieceType()));
+                //ChessPiece promoPiece = getPromoPiece(currentGameData.game().getTeamTurn());
+                currentGameData.game().makeMove(new ChessMove(move.getStartPosition(), move.getEndPosition(), null));
             }
             else {
                 currentGameData.game().makeMove(move);
