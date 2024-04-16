@@ -12,19 +12,16 @@ import model.UserData;
 import server.ServerFacade;
 import ui.websocket.NotificationHandler;
 import ui.websocket.WebSocketFacade;
-import webSocketMessages.serverMessages.ServerMessage;
-import webSocketMessages.userCommands.UserGameCommand;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import static ui.EscapeSequences.*;
-import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
 
 public class ChessClient {
     private LogState logState = LogState.OUT;
-    private ChessClientHelper chessClientHelper;
+    private ChessClientHelper chessClientHelper = new ChessClientHelper();
     private GameState gameState = GameState.OUT_OF_GAME;
     private final ServerFacade facade;
     private WebSocketFacade ws;
