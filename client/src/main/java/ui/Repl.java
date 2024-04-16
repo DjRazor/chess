@@ -55,6 +55,8 @@ public class Repl implements NotificationHandler {
             System.out.println(message);
         } catch (DataAccessException e) {
             throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

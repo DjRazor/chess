@@ -21,7 +21,7 @@ public class WebSocketFacade extends Endpoint {
     NotificationHandler notificationHandler;
     String authString;
 
-    public WebSocketFacade(String url, NotificationHandler notificationHandler, String authString) throws DataAccessException {
+    public WebSocketFacade(String url, NotificationHandler notificationHandler, String authString)  {
         try {
             url = url.replace("http", "ws");
             URI socketURI = new URI(url + "/connect");
@@ -53,8 +53,12 @@ public class WebSocketFacade extends Endpoint {
                 }
             });
 
-        } catch (DeploymentException | IOException | URISyntaxException ex) {
-            throw new DataAccessException("WS setup error: " + ex.getMessage());
+        } catch (DeploymentException e) {
+            throw new RuntimeException(e);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -63,15 +67,11 @@ public class WebSocketFacade extends Endpoint {
     public void onOpen(Session session, EndpointConfig endpointConfig) {
     }
 
-    public void joinPlayer(Integer gameID, ChessGame.TeamColor playerColor) throws DataAccessException {
-        try {
-            JoinPlayer join = new JoinPlayer(authString, gameID, playerColor);
-            join.setCommandType(UserGameCommand.CommandType.JOIN_PLAYER);
-            this.session.getBasicRemote().sendText(new Gson().toJson(join));
-            System.out.println("sent join player: " + new Gson().toJson(join));
-        } catch (IOException ex) {
-            throw new DataAccessException("WSF joinPlayer error: " + ex.getMessage());
-        }
+    public void joinPlayer(Integer gameID, ChessGame.TeamColor playerColor) throws IOException {
+        JoinPlayer join = new JoinPlayer(authString, gameID, playerColor);
+        join.setCommandType(UserGameCommand.CommandType.JOIN_PLAYER);
+        this.session.getBasicRemote().sendText(new Gson().toJson(join));
+        System.out.println("sent join player: " + new Gson().toJson(join));
     }
 
     public void joinObserver(Integer gameID) throws IOException {
@@ -79,24 +79,16 @@ public class WebSocketFacade extends Endpoint {
         this.session.getBasicRemote().sendText(new Gson().toJson(joinObserver));
     }
 
-    public void leave(Integer gameID) throws DataAccessException {
-        try {
+    public void leave(Integer gameID) throws IOException {
             Leave leave = new Leave(authString, gameID);
             leave.setCommandType(UserGameCommand.CommandType.LEAVE);
             this.session.getBasicRemote().sendText(new Gson().toJson(leave));
             this.session.close();
-        } catch (IOException ex) {
-            throw new DataAccessException("WSF leave error: " + ex.getMessage());
-        }
     }
 
-    public void makeMove(Integer gameID, ChessMove move) throws DataAccessException {
-        try {
-            MakeMove makeMove = new MakeMove(authString, gameID, move);
-            this.session.getBasicRemote().sendText(new Gson().toJson(makeMove));
-        } catch (IOException ex) {
-            throw new DataAccessException("WSF makeMove error: " + ex.getMessage());
-        }
+    public void makeMove(Integer gameID, ChessMove move) throws IOException {
+        MakeMove makeMove = new MakeMove(authString, gameID, move);
+        this.session.getBasicRemote().sendText(new Gson().toJson(makeMove));
     }
 
     public void resign(Integer gameID) throws IOException {
