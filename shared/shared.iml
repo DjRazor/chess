@@ -11,7 +11,6 @@
     <orderEntry type="library" name="junit.jupiter" level="project" />
     <orderEntry type="library" name="google.code.gson" level="project" />
     <orderEntry type="library" name="springframework.security.spring.core" level="project" />
-    <orderEntry type="library" name="springframework.security.crypto.bcrypt.BCryptPasswordEncoder" level="project" />
     <orderEntry type="library" name="mysql.connector.java" level="project" />
   </component>
 </module>
