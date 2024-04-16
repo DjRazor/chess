@@ -368,7 +368,7 @@ public class ChessClient {
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
     }
 
-    public String resign() throws DataAccessException {
+    public String resign() throws DataAccessException, IOException {
         assertSignIn();
         assertInGame();
         Scanner resScan = new Scanner(System.in);
@@ -378,9 +378,9 @@ public class ChessClient {
             line = line.toUpperCase();
             switch (line) {
                 case "Y" -> {
-                    facade.updateGame(new GameData(currentGameData.gameID(), currentGameData.whiteUsername(),
-                            currentGameData.blackUsername(), currentGameData.gameName(), null), authToken);
-                    //facade.updateGame();
+                    //facade.updateGame(new GameData(currentGameData.gameID(), currentGameData.whiteUsername(),
+                            //currentGameData.blackUsername(), currentGameData.gameName(), null), authToken);
+                    ws.resign(currentGameData.gameID());
                     return "End game.\n";
                 }
                 case "N" -> {
