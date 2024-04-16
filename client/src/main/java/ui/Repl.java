@@ -1,6 +1,5 @@
 package ui;
 
-import dataAccess.DataAccessException;
 import ui.websocket.NotificationHandler;
 
 import java.util.Scanner;
