@@ -30,4 +30,7 @@ public class GameService {
     public void updateGame(GameData game) throws DataAccessException {
         gameDAO.updateGame(game);
     }
+    public void joinObserver(int gameID, HashSet<String> watchers) throws DataAccessException {
+        gameDAO.joinObserver(gameID, watchers);
+    }
 }

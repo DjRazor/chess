@@ -26,6 +26,7 @@ public class WebSocketFacade extends Endpoint {
             URI socketURI = new URI(url + "/connect");
             this.notificationHandler = notificationHandler;
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            container.setDefaultMaxSessionIdleTimeout(5 * 60 * 1000);
             this.session = container.connectToServer(this, socketURI);
             this.authString = authString;
             this.session.addMessageHandler(new MessageHandler.Whole<String>() {
@@ -79,10 +80,10 @@ public class WebSocketFacade extends Endpoint {
     }
 
     public void leave(Integer gameID) throws IOException {
-            Leave leave = new Leave(authString, gameID);
-            leave.setCommandType(UserGameCommand.CommandType.LEAVE);
-            this.session.getBasicRemote().sendText(new Gson().toJson(leave));
-            this.session.close();
+        Leave leave = new Leave(authString, gameID);
+        leave.setCommandType(UserGameCommand.CommandType.LEAVE);
+        this.session.getBasicRemote().sendText(new Gson().toJson(leave));
+        this.session.close();
     }
 
     public void makeMove(Integer gameID, ChessMove move) throws IOException {

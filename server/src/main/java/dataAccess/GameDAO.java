@@ -12,4 +12,5 @@ public interface GameDAO {
     void updateGame(GameData gameData) throws DataAccessException;
     void clear() throws DataAccessException;
     GameData getGame(int gameID) throws DataAccessException;
+    void joinObserver(int gameID, HashSet<String> watchers) throws DataAccessException;
 }

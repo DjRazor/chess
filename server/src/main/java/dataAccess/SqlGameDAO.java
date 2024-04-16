@@ -136,13 +136,35 @@ public class SqlGameDAO implements GameDAO{
         }
         return null;
     }
+    public void joinObserver(int gameID, HashSet<String> watchers) throws DataAccessException {
+        var statement = "UPDATE games SET observers = ? WHERE gameID = ?";
+        executeUpdate(statement, new Gson().toJson(watchers), gameID);
+        //return new JsonObject();
+    }
     public void clear() throws DataAccessException {
         var statement = "DROP TABLE IF EXISTS games";
         executeUpdate(statement);
     }
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
-        ConfigureDatabase configureDatabase = new ConfigureDatabase();
-        return configureDatabase.executeUpdate(statement, params);
+        try (var conn = DatabaseManager.getConnection()) {
+            try (var ps = conn.prepareStatement(statement, Statement.RETURN_GENERATED_KEYS)) {
+                for (var i = 0; i < params.length; i++) {
+                    var param = params[i];
+                    if (param instanceof String p) ps.setString(i + 1, p);
+                    else if (param instanceof Integer p) ps.setInt(i + 1, p);
+                    else if (param == null) ps.setNull(i + 1, NULL);
+                }
+                ps.executeUpdate();
+                var rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+                return 0;
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException(String.format("Unable to update database: %s, %s", statement, ex.getMessage()));
+        }
+
     }
     private final String[] createStatements = {
             """
@@ -151,6 +173,7 @@ public class SqlGameDAO implements GameDAO{
               `gameID` int NOT NULL,
               `whiteUsername` TEXT DEFAULT NULL,
               `blackUsername` TEXT DEFAULT NULL,
+              `observers` TEXT DEFAULT NULL,
               `gameName` varchar(256) NOT NULL,
               `ChessGame` TEXT DEFAULT NULL,
               `json` TEXT DEFAULT NULL,

@@ -14,6 +14,7 @@ import spark.*;
 import com.google.gson.Gson;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 public class Server {
@@ -157,9 +158,18 @@ public class Server {
             return badReq();
         }
 
+
+
         // If watcher, add to watchers; If desired user slot is open, fill it
         if (!parsedJson.has("playerColor")) {
+            System.out.println("Server Observer null join");
             watchers.add(authHeadToken);
+            res.status(200);
+            return new JsonObject();
+        }
+        if (Objects.equals(parsedJson.get("playerColor").getAsString(), ChessGame.TeamColor.NONE.toString())) {
+            watchers.add(authHeadToken);
+            gameService.joinObserver(gameID, watchers);
             res.status(200);
             return new JsonObject();
         }

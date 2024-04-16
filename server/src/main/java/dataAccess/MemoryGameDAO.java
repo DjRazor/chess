@@ -58,4 +58,9 @@ public class MemoryGameDAO implements GameDAO {
     public GameData getGame(int gameID) {
         return null;
     }
+
+    @Override
+    public void joinObserver(int gameID, HashSet<String> watchers) throws DataAccessException {
+
+    }
 }
