@@ -35,12 +35,12 @@ public class ConnectionManager {
         connections.remove(authString);
     }
 
-    public void broadcast(String authString, ServerMessage serverMessage) throws IOException {
+    public void broadcast(String authString, Integer gameID, ServerMessage serverMessage) throws IOException {
         System.out.println("made to broadcast");
         var removeList = new ArrayList<Connection>();
         for (var c : connections.values()) {
             if (c.session.isOpen()) {
-                if (!c.authToken.equals(authString)) {
+                if (!c.authToken.equals(authString) && c.gameID.equals(gameID)) {
                     c.send(new Gson().toJson(serverMessage));
                 }
             } else {

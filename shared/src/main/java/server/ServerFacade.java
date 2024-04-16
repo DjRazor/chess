@@ -15,8 +15,8 @@ import java.net.*;
 public class ServerFacade {
     private final String serverURL;
 
-    public ServerFacade(String URL) {
-        serverURL = URL;
+    public ServerFacade(String url) {
+        serverURL = url;
     }
 
     public AuthData register(UserData userData) throws URISyntaxException, IOException {

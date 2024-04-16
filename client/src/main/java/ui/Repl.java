@@ -32,20 +32,6 @@ public class Repl implements NotificationHandler {
     @Override
     public void notify(String message) {
         System.out.println(message);
-//        if (serverMessage.getClass() == ServerNotification.class) {
-//            System.out.println("made it to notify in repl");
-//            System.out.println(((ServerNotification) serverMessage).getMessage());
-//        }
-//        else if (serverMessage.getClass() == LoadGame.class) {
-//            try {
-//                client.redraw();
-//            } catch (DataAccessException ex) {
-//                System.out.println("Repl LoadGame error: " + ex.getMessage());
-//            }
-//        }
-//        else if (serverMessage.getClass() == Error.class) {
-//            System.out.println(((Error) serverMessage).getErrorMsg());
-//        }
     }
     @Override
     public void loadGame(String message) {

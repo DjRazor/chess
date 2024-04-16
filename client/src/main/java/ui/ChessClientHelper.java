@@ -37,30 +37,6 @@ public class ChessClientHelper {
         }
         return null;
     }
-
-    public String convertPieceToString(String param) {
-        String upperParam = param.toUpperCase();
-        if (upperParam.equals("P")) {
-            return "Pawn";
-        }
-        if (upperParam.equals("R")) {
-            return "Rook";
-        }
-        if (upperParam.equals("N")) {
-            return "Knight";
-        }
-        if (upperParam.equals("B")) {
-            return "Bishop";
-        }
-        if (upperParam.equals("Q")) {
-            return "Queen";
-        }
-        if (upperParam.equals("K")) {
-            return "Knight";
-        }
-        return null;
-    }
-
     public int convertLetterToInt(char letter) {
         int i;
         switch (letter) {
