@@ -28,19 +28,19 @@ public class ConnectionManager {
     public void add(String username, String authString, Integer gameID, ChessGame.TeamColor teamColor, Session session) {
         var connection = new Connection(username, authString, gameID, teamColor, session);
         connections.put(authString, connection);
+        System.out.println(connections);
     }
 
     public void remove(String authString) {
-        System.out.println("Removed user from connections");
         connections.remove(authString);
     }
 
-    public void broadcast(String authString, Integer gameID, ServerMessage serverMessage) throws IOException {
+    public void broadcast(String authString, ServerMessage serverMessage) throws IOException {
         System.out.println("made to broadcast");
         var removeList = new ArrayList<Connection>();
         for (var c : connections.values()) {
             if (c.session.isOpen()) {
-                if (!c.authToken.equals(authString) && c.gameID.equals(gameID)) {
+                if (!c.authToken.equals(authString)) {
                     c.send(new Gson().toJson(serverMessage));
                 }
             } else {
@@ -102,9 +102,11 @@ public class ConnectionManager {
 
     public boolean checkAvail(Integer gameID, ChessGame.TeamColor teamColor) {
         for (var c : connections.values()) {
-            if (Objects.equals(c.gameID, gameID) && teamColor.equals(c.teamColor)) {
-                System.out.println("Failed checkAvail");
-                return false;
+            if (c.session.isOpen()) {
+                if (Objects.equals(c.gameID, gameID) && teamColor.equals(c.teamColor)) {
+                    System.out.println("Failed checkAvail");
+                    return false;
+                }
             }
         }
         return true;
