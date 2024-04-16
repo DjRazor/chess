@@ -217,9 +217,9 @@ public class ChessClient {
         if (params.length == 1) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
             if (joinStatus.entrySet().isEmpty()) {
+                gameState = GameState.IN_GAME;
+                ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
                 ws.joinObserver(Integer.parseInt(params[0]));
-                redraw();
-
                 return "Observing game " + params[0];
             }
         }
@@ -366,6 +366,13 @@ public class ChessClient {
     public String resign() throws Exception {
         assertSignIn();
         assertInGame();
+
+        setCurrentGameData(String.valueOf(currentGameData.gameID()));
+        assertNotResigned();
+
+        if (currentGameData.game().getTeamTurn().equals(ChessGame.TeamColor.NONE)) {
+            return "Game has been resigned.";
+        }
         Scanner resScan = new Scanner(System.in);
         while (true) {
             System.out.println("Are you sure you want to resign? (Y/N)");
@@ -373,8 +380,6 @@ public class ChessClient {
             line = line.toUpperCase();
             switch (line) {
                 case "Y" -> {
-                    //facade.updateGame(new GameData(currentGameData.gameID(), currentGameData.whiteUsername(),
-                            //currentGameData.blackUsername(), currentGameData.gameName(), null), authToken);
                     ws.resign(currentGameData.gameID());
                     return "End game.\n";
                 }
@@ -397,6 +402,9 @@ public class ChessClient {
         }
         else if (teamColor == ChessGame.TeamColor.WHITE){
             editedGame = new GameData(currentGameData.gameID(), null, currentGameData.blackUsername(), currentGameData.gameName(),currentGameData.game());
+        }
+        else if (teamColor == null) {
+            editedGame = currentGameData;
         }
         else {
             throw new Exception("leave teamColor error");
@@ -437,7 +445,7 @@ public class ChessClient {
     }
 
     private void assertNotResigned() throws Exception {
-        if (currentGameData.game() == null) {
+        if (currentGameData.game().getTeamTurn().equals(ChessGame.TeamColor.NONE)) {
             throw new Exception("The game has ended due to resign.\n");
         }
     }

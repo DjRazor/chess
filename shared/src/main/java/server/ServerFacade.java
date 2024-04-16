@@ -1,5 +1,6 @@
 package server;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
@@ -48,12 +49,10 @@ public class ServerFacade {
             return this.makeRequest("GET", path, authToken, null, JsonObject.class);
     }
 
-    public JsonObject joinGame(int gameID, String playerColor, String authToken) throws URISyntaxException, IOException {
+    public JsonObject joinGame(int gameID, ChessGame.TeamColor playerColor, String authToken) throws URISyntaxException, IOException {
             String path = "/game";
             JsonObject jgo = new JsonObject();
-            if (playerColor != null) {
-                jgo.addProperty("playerColor", playerColor.toUpperCase());
-            }
+            jgo.addProperty("playerColor", playerColor.toString());
             jgo.addProperty("gameID", gameID);
             return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
     }
@@ -116,7 +115,7 @@ public class ServerFacade {
     private void throwIfNotSuccessful(HttpURLConnection http) throws IOException {
         var status = http.getResponseCode();
         if (!isSuccessful(status)) {
-            throw new IOException("throw not successful");
+            throw new IOException("Invalid request. Please try again.");
         }
     }
 
