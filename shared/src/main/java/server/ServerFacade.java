@@ -22,48 +22,80 @@ public class ServerFacade {
     }
 
     public AuthData register(UserData userData) throws Exception {
-        String path = "/user";
-        return this.makeRequest("POST", path, null, userData, AuthData.class);
+        try {
+            String path = "/user";
+            return this.makeRequest("POST", path, null, userData, AuthData.class);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     public AuthData login(JsonObject loginInfo) throws Exception {
-        String path = "/session";
-        return this.makeRequest("POST", path, null, loginInfo, AuthData.class);
+        try {
+            String path = "/session";
+            return this.makeRequest("POST", path, null, loginInfo, AuthData.class);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     public void logout(String authToken) throws Exception {
-        String path = "/session";
-        this.makeRequest("DELETE", path, authToken, null, null);
+        try {
+            String path = "/session";
+            this.makeRequest("DELETE", path, authToken, null, null);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     public Object createGame(JsonObject gameName, String authToken) throws Exception {
-        String path = "/game";
-        return this.makeRequest("POST", path, authToken, gameName, JsonObject.class);
+        try {
+            String path = "/game";
+            return this.makeRequest("POST", path, authToken, gameName, JsonObject.class);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     public JsonObject listGames(String authToken) throws Exception {
-        String path = "/game";
-        return this.makeRequest("GET", path, authToken, null, JsonObject.class);
+        try {
+            String path = "/game";
+            return this.makeRequest("GET", path, authToken, null, JsonObject.class);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     public JsonObject joinGame(int gameID, String playerColor, String authToken) throws Exception {
-        String path = "/game";
-        JsonObject jgo = new JsonObject();
-        if (playerColor != null) {
-            jgo.addProperty("playerColor", playerColor.toUpperCase());
+        try {
+            String path = "/game";
+            JsonObject jgo = new JsonObject();
+            if (playerColor != null) {
+                jgo.addProperty("playerColor", playerColor.toUpperCase());
+            }
+            jgo.addProperty("gameID", gameID);
+            return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
         }
-        jgo.addProperty("gameID", gameID);
-        return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
     }
 
     public void updateGame(GameData gameData, String authToken) throws Exception {
-        String path = "/gameupdate";
-        this.makeRequest("PUT", path, authToken, gameData, null);
+        try {
+            String path = "/gameupdate";
+            this.makeRequest("PUT", path, authToken, gameData, null);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     public void clear() throws Exception {
-        String path = "/db";
-        this.makeRequest("DELETE", path, null, null, null);
+        try {
+            String path = "/db";
+            this.makeRequest("DELETE", path, null, null, null);
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
     }
 
     private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws Exception {
