@@ -10,9 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
+import java.net.*;
 
 public class ServerFacade {
     private final String serverURL;
@@ -21,22 +19,14 @@ public class ServerFacade {
         serverURL = URL;
     }
 
-    public AuthData register(UserData userData) throws Exception {
-        try {
+    public AuthData register(UserData userData) throws URISyntaxException, IOException {
             String path = "/user";
             return this.makeRequest("POST", path, null, userData, AuthData.class);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
     }
 
-    public AuthData login(JsonObject loginInfo) throws Exception {
-        try {
+    public AuthData login(JsonObject loginInfo) throws URISyntaxException, IOException {
             String path = "/session";
             return this.makeRequest("POST", path, null, loginInfo, AuthData.class);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
     }
 
     public void logout(String authToken) throws Exception {
@@ -48,26 +38,17 @@ public class ServerFacade {
         }
     }
 
-    public Object createGame(JsonObject gameName, String authToken) throws Exception {
-        try {
+    public Object createGame(JsonObject gameName, String authToken) throws URISyntaxException, IOException {
             String path = "/game";
             return this.makeRequest("POST", path, authToken, gameName, JsonObject.class);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
     }
 
-    public JsonObject listGames(String authToken) throws Exception {
-        try {
+    public JsonObject listGames(String authToken) throws URISyntaxException, IOException {
             String path = "/game";
             return this.makeRequest("GET", path, authToken, null, JsonObject.class);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
     }
 
-    public JsonObject joinGame(int gameID, String playerColor, String authToken) throws Exception {
-        try {
+    public JsonObject joinGame(int gameID, String playerColor, String authToken) throws URISyntaxException, IOException {
             String path = "/game";
             JsonObject jgo = new JsonObject();
             if (playerColor != null) {
@@ -75,18 +56,11 @@ public class ServerFacade {
             }
             jgo.addProperty("gameID", gameID);
             return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
     }
 
-    public void updateGame(GameData gameData, String authToken) throws Exception {
-        try {
+    public void updateGame(GameData gameData, String authToken) throws URISyntaxException, IOException {
             String path = "/gameupdate";
             this.makeRequest("PUT", path, authToken, gameData, null);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
     }
 
     public void clear() throws Exception {
@@ -98,8 +72,8 @@ public class ServerFacade {
         }
     }
 
-    private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws Exception {
-        try {
+    private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws URISyntaxException, IOException {
+
             URL url = (new URI(serverURL + path)).toURL();
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
             http.setRequestMethod(method);
@@ -110,9 +84,7 @@ public class ServerFacade {
             http.connect();
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
-        } catch (Exception ex) {
-            throw new Exception(ex.getMessage());
-        }
+
     }
     private static void writeBody(Object request, HttpURLConnection http) throws IOException {
         if (request != null) {
