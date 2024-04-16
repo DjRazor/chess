@@ -1,8 +1,6 @@
 package ui;
 
-import chess.ChessGame;
 import chess.ChessPiece;
-import dataAccess.DataAccessException;
 
 import java.io.PrintStream;
 
