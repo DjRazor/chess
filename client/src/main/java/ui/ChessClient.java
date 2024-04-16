@@ -12,18 +12,16 @@ import model.UserData;
 import server.ServerFacade;
 import ui.websocket.NotificationHandler;
 import ui.websocket.WebSocketFacade;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static ui.EscapeSequences.*;
-import static ui.EscapeSequences.SET_BG_COLOR_BLACK;
 
 public class ChessClient {
+    private final ChessClientHelper chessClientHelper = new ChessClientHelper();
     private LogState logState = LogState.OUT;
-
     private GameState gameState = GameState.OUT_OF_GAME;
     private final ServerFacade facade;
     private WebSocketFacade ws;
@@ -37,13 +35,11 @@ public class ChessClient {
     private NotificationHandler notificationHandler;
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
-
     public ChessClient(String serverURL, NotificationHandler notificationHandler) {
         this.serverURL = serverURL;
         facade = new ServerFacade(serverURL);
         this.notificationHandler = notificationHandler;
     }
-
     public String eval(String input) throws InvalidMoveException, IOException {
         try {
             var tokens = input.toLowerCase().split(" ");
@@ -126,19 +122,12 @@ public class ChessClient {
         assertSignIn();
         assertOutOfGame();
 
-        // For resigned games, set ChessGame to null
-        // If GameData.game() == null, print "Finished game."
-        // Idk tho, could be good to keep game to show where it ended.
-        // Probably not because it's not that essential
-
         int count = 1;
         ArrayList<String> gamesAsString = new ArrayList<>();
         JsonObject games = facade.listGames(authToken);
         JsonArray gamesArray = games.getAsJsonArray("games");
-
         for (JsonElement element : gamesArray) {
             JsonObject gameElem = element.getAsJsonObject();
-
             int gameID = gameElem.get("gameID").getAsInt();
             String gameName = gameElem.get("gameName").getAsString();
             String whiteUsername;
@@ -153,7 +142,6 @@ public class ChessClient {
             } else {
                 blackUsername = "empty";
             }
-
             String game = """
                     %s:
                     Game ID: %d
@@ -174,7 +162,6 @@ public class ChessClient {
         }
         return gamesString;
     }
-
     private void setCurrentGameData(String gameID) throws DataAccessException {
         JsonObject games = facade.listGames(authToken);
         JsonArray gamesArray = games.getAsJsonArray("games");
@@ -188,11 +175,9 @@ public class ChessClient {
             }
         }
     }
-
     public String joinGame(String... params) throws DataAccessException {
         assertSignIn();
         assertOutOfGame();
-
         setCurrentGameData(params[1]);
         assertNotResigned();
 
@@ -216,7 +201,6 @@ public class ChessClient {
     public String joinObserver(String... params) throws DataAccessException, IOException {
         assertSignIn();
         assertOutOfGame();
-        // NEW WS FACADE ws.enterGame(username)
         if (params.length == 1) {
             JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
             if (joinStatus.entrySet().isEmpty()) {
@@ -259,37 +243,31 @@ public class ChessClient {
                - help
                """;
     }
-
     /* In Game Methods */
     public String redraw() throws DataAccessException {
         assertSignIn();
         assertInGame();
-
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
 
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         out.print(ERASE_SCREEN);
-
         drawBoard1(out);
         out.println("\u001B[0m");
         drawBoard2(out);
 
         // Resets all attributes to default
         out.println("\u001B[0m");
-
         return "Boards drawn.\n";
     }
-
     public String showMoves(String ...params) throws DataAccessException {
         assertSignIn();
         assertInGame();
-
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
 
         if (params.length == 1) {
-            int col = convertLetterToInt(params[0].charAt(0));
+            int col = chessClientHelper.convertLetterToInt(params[0].charAt(0));
             int row = Integer.parseInt(String.valueOf(params[0].charAt(1)));
             boolean emptySpot = currentGameData.game().getBoard().getPiece(new ChessPosition(row, col)) == null;
             if (emptySpot) {
@@ -299,7 +277,6 @@ public class ChessClient {
             if (moves.isEmpty()) {
                 return "No valid moves for " + params[0] + "\n";
             }
-
             showMovesEnabled = true;
             showEnds = new HashSet<>();
             for (ChessMove move : moves) {
@@ -311,23 +288,14 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 1 argument but " + params.length + " were given.");
     }
-
     public String makeMove(String ...params) throws DataAccessException, InvalidMoveException {
         assertSignIn();
         assertInGame();
 
-        // Pseudocode:
-        /*
-        Get user input and convert into needed chess object (piece, move) (get color from board or game)
-        mAkEmOvE
-
-        FOR PAWN PROMO:
-        ask for promo with getPiecePromo (get back from ws), then send THAT into WSF
-         */
+        /*FOR PAWN PROMO: ask for promo with getPiecePromo (get back from ws), then send THAT into WSF*/
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
         Character[] charLetters = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-
         // JUST create ChessMove, pass in to WSF
         if (params.length == 2) { // Checks param length
             if (params[0].length() == 2 && params[1].length() == 2) { // Checks if valid spot
@@ -346,8 +314,8 @@ public class ChessClient {
                 if (validLetter && validLetter2) {
                     int startRow = Integer.parseInt(String.valueOf(start.charAt(1)));
                     int endRow = Integer.parseInt(String.valueOf(end.charAt(1)));
-                    int startCol = convertLetterToInt(start.charAt(0));
-                    int endCol = convertLetterToInt(end.charAt(0));
+                    int startCol = chessClientHelper.convertLetterToInt(start.charAt(0));
+                    int endCol = chessClientHelper.convertLetterToInt(end.charAt(0));
 
                     if (startRow <= 8 && startRow >= 1 && endRow <= 8 && endRow >= 1) {
                         ChessPosition startPos = new ChessPosition(startRow, startCol);
@@ -365,7 +333,6 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
     }
-
     public String resign() throws DataAccessException, IOException {
         assertSignIn();
         assertInGame();
@@ -376,8 +343,6 @@ public class ChessClient {
             line = line.toUpperCase();
             switch (line) {
                 case "Y" -> {
-                    //facade.updateGame(new GameData(currentGameData.gameID(), currentGameData.whiteUsername(),
-                            //currentGameData.blackUsername(), currentGameData.gameName(), null), authToken);
                     ws.resign(currentGameData.gameID());
                     return "End game.\n";
                 }
@@ -387,11 +352,9 @@ public class ChessClient {
             }
         }
     }
-
     public String leave() throws DataAccessException {
         assertSignIn();
         assertInGame();
-
         // Add code to update game for when player leaves to show empty spot
         // This could be done through the updateGame method
         GameData editedGame;
@@ -412,7 +375,6 @@ public class ChessClient {
         teamColor = null;
         return "Left game.\n";
     }
-
     public String unknown() {
         return "Unknown command. Please enter a valid command.\n" + help();
     }
@@ -432,25 +394,21 @@ public class ChessClient {
             throw new DataAccessException("You must sign in or register.");
         }
     }
-
     private void assertInGame() throws DataAccessException {
         if (gameState == GameState.OUT_OF_GAME) {
             throw new DataAccessException("You must be in a game to use this command.");
         }
     }
-
     private void assertNotResigned() throws DataAccessException {
         if (currentGameData.game() == null) {
             throw new DataAccessException("The game has ended due to resign.\n");
         }
     }
-
     private void assertOutOfGame() throws DataAccessException {
         if (gameState == GameState.IN_GAME) {
             throw new DataAccessException("You cannot use this command while in game.");
         }
     }
-
     private void drawBoard1(PrintStream out) {
         out.print(SET_BG_COLOR_LIGHT_GREY);
         out.print(SET_TEXT_COLOR_WHITE);
@@ -492,15 +450,15 @@ public class ChessClient {
         for (int i = 1; i < 9; i++) {
             // Alternates white and black spots
             if (!rev && showMovesEnabled && showEnds.contains(new ChessPosition(num, i))) {
-                setGreen(out);
+                chessClientHelper.setGreen(out);
             }
             else if (rev && showMovesEnabled && showEnds.contains(new ChessPosition(num, 9 - i))) {
-                setGreen(out);
+                chessClientHelper.setGreen(out);
             }
             else if (whiteSpot) {
-                setWhite(out);
+                chessClientHelper.setWhite(out);
             } else {
-                setBlack(out);
+                chessClientHelper.setBlack(out);
             }
             whiteSpot = !whiteSpot;
 
@@ -515,10 +473,10 @@ public class ChessClient {
             if (currentPiece != null) {
                 if (currentPiece.getTeamColor() == ChessGame.TeamColor.WHITE) {
                     out.print(SET_TEXT_COLOR_BLUE);
-                    out.print(" " + convertPiece(currentPiece) + " ");
+                    out.print(" " + chessClientHelper.convertPiece(currentPiece) + " ");
                 } else if (currentPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
                     out.print(SET_TEXT_COLOR_RED);
-                    out.print(" " + convertPiece(currentPiece) + " ");
+                    out.print(" " + chessClientHelper.convertPiece(currentPiece) + " ");
                 }
             } else {
                 out.print("   ");
@@ -529,76 +487,6 @@ public class ChessClient {
         out.print(SET_TEXT_COLOR_WHITE);
         out.println(" " + num + " ");
     }
-    private static void setWhite(PrintStream out) {
-        out.print(SET_BG_COLOR_WHITE);
-    }
-    private static void setBlack(PrintStream out) {
-        out.print(SET_BG_COLOR_BLACK);
-    }
-    private static void setGreen(PrintStream out) {
-        out.print(SET_BG_COLOR_DARK_GREEN);
-    }
-    private String convertPiece(ChessPiece piece) {
-        if (piece.getPieceType() == ChessPiece.PieceType.PAWN) {
-            return "P";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.BISHOP) {
-            return "B";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.ROOK) {
-            return "R";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.KNIGHT) {
-            return "N";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.KING) {
-            return "K";
-        }
-        if (piece.getPieceType() == ChessPiece.PieceType.QUEEN) {
-            return "Q";
-        }
-        return null;
-    }
-
-    private String convertPieceToString(String param) {
-        String upperParam = param.toUpperCase();
-        if (upperParam.equals("P")) {
-            return "Pawn";
-        }
-        if (upperParam.equals("R")) {
-            return "Rook";
-        }
-        if (upperParam.equals("N")) {
-            return "Knight";
-        }
-        if (upperParam.equals("B")) {
-            return "Bishop";
-        }
-        if (upperParam.equals("Q")) {
-            return "Queen";
-        }
-        if (upperParam.equals("K")) {
-            return "Knight";
-        }
-        return null;
-    }
-
-    private int convertLetterToInt(char letter) {
-        int i;
-        switch (letter) {
-            case 'a' -> i = 1;
-            case 'b' -> i = 2;
-            case 'c' -> i = 3;
-            case 'd' -> i = 4;
-            case 'e' -> i = 5;
-            case 'f' -> i = 6;
-            case 'g' -> i = 7;
-            case 'h' -> i = 8;
-            default -> i = 0;
-        }
-        return i;
-    }
-
     private void setUserTeamColor(String color) throws DataAccessException {
         if (color.equals("BLACK")) {
             teamColor = ChessGame.TeamColor.BLACK;
