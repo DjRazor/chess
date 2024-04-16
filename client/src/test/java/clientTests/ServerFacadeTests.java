@@ -8,8 +8,6 @@ import org.junit.jupiter.api.*;
 import server.Server;
 import server.ServerFacade;
 
-import java.util.HashSet;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

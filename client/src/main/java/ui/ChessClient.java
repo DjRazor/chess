@@ -12,8 +12,6 @@ import model.UserData;
 import server.ServerFacade;
 import ui.websocket.NotificationHandler;
 import ui.websocket.WebSocketFacade;
-import webSocketMessages.serverMessages.ServerMessage;
-import webSocketMessages.userCommands.UserGameCommand;
 
 import java.io.IOException;
 import java.io.PrintStream;

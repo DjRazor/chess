@@ -6,11 +6,8 @@ import dataAccess.AuthDAO;
 import dataAccess.DataAccessException;
 import dataAccess.SqlAuthDAO;
 import org.eclipse.jetty.websocket.api.Session;
-import webSocketMessages.Notification;
-import webSocketMessages.serverMessages.Error;
 import webSocketMessages.serverMessages.LoadGame;
 import webSocketMessages.serverMessages.ServerMessage;
-import webSocketMessages.serverMessages.ServerNotification;
 
 import java.io.IOException;
 import java.util.ArrayList;
