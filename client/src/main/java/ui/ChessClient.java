@@ -65,11 +65,11 @@ public class ChessClient {
                 case "makemove" -> makeMove(params);
                 default -> unknown();
             };
-        } catch (DataAccessException ex) {
+        } catch (Exception ex) {
             return ex.getMessage();
         }
     }
-    public String register(String... params) throws DataAccessException {
+    public String register(String... params) throws Exception {
         assertOutOfGame();
         if (params.length == 3) {
             UserData userData = new UserData(params[0], params[1], params[2]);
@@ -81,7 +81,7 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 3 arguments, but " + params.length + " were given.");
     }
-    public String login(String... params) throws DataAccessException {
+    public String login(String... params) throws Exception {
         assertOutOfGame();
         if (params.length == 2) {
             JsonObject loginInfo = new JsonObject();
@@ -95,7 +95,7 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 2 arguments, but received " + params.length);
     }
-    public String logout() throws DataAccessException {
+    public String logout() throws Exception {
         assertOutOfGame();
         assertSignIn();
         facade.logout(authToken);
@@ -106,7 +106,7 @@ public class ChessClient {
         logState = LogState.OUT;
         return temp + " signed out.\n";
     }
-    public String createGame(String... params) throws DataAccessException {
+    public String createGame(String... params) throws Exception {
         assertOutOfGame();
         assertSignIn();
         if (params.length == 1) {
@@ -120,7 +120,7 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 1 argument, but " + params.length + " were given.\n");
     }
-    public String listGames() throws DataAccessException {
+    public String listGames() throws Exception {
         assertSignIn();
         assertOutOfGame();
 
@@ -173,7 +173,7 @@ public class ChessClient {
         return gamesString;
     }
 
-    private void setCurrentGameData(String gameID) throws DataAccessException {
+    private void setCurrentGameData(String gameID) throws Exception {
         JsonObject games = facade.listGames(authToken);
         JsonArray gamesArray = games.getAsJsonArray("games");
         for (JsonElement elem : gamesArray) {
@@ -187,7 +187,7 @@ public class ChessClient {
         }
     }
 
-    public String joinGame(String... params) throws DataAccessException {
+    public String joinGame(String... params) throws Exception {
         assertSignIn();
         assertOutOfGame();
 
@@ -211,7 +211,7 @@ public class ChessClient {
         }
         throw new DataAccessException("Expected 2 arguments but " + params.length + " were given.\n");
     }
-    public String joinObserver(String... params) throws DataAccessException, IOException {
+    public String joinObserver(String... params) throws Exception {
         assertSignIn();
         assertOutOfGame();
         // NEW WS FACADE ws.enterGame(username)
@@ -259,7 +259,7 @@ public class ChessClient {
     }
 
     /* In Game Methods */
-    public String redraw() throws DataAccessException {
+    public String redraw() throws Exception {
         assertSignIn();
         assertInGame();
 
@@ -279,7 +279,7 @@ public class ChessClient {
         return "Boards drawn.\n";
     }
 
-    public String showMoves(String ...params) throws DataAccessException {
+    public String showMoves(String ...params) throws Exception {
         assertSignIn();
         assertInGame();
 
@@ -310,7 +310,7 @@ public class ChessClient {
         throw new DataAccessException("Expected 1 argument but " + params.length + " were given.");
     }
 
-    public String makeMove(String ...params) throws DataAccessException, InvalidMoveException {
+    public String makeMove(String ...params) throws Exception {
         assertSignIn();
         assertInGame();
 
@@ -386,7 +386,7 @@ public class ChessClient {
         }
     }
 
-    public String leave() throws DataAccessException {
+    public String leave() throws Exception {
         assertSignIn();
         assertInGame();
 
@@ -414,7 +414,7 @@ public class ChessClient {
     public String unknown() {
         return "Unknown command. Please enter a valid command.\n" + help();
     }
-    public String clear() throws DataAccessException {
+    public String clear() throws Exception {
         assertSignIn();
         facade.clear();
         username = null;

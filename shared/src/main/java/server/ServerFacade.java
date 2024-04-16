@@ -2,7 +2,6 @@ package server;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import dataAccess.DataAccessException;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
@@ -22,32 +21,32 @@ public class ServerFacade {
         serverURL = URL;
     }
 
-    public AuthData register(UserData userData) throws DataAccessException {
+    public AuthData register(UserData userData) throws Exception {
         String path = "/user";
         return this.makeRequest("POST", path, null, userData, AuthData.class);
     }
 
-    public AuthData login(JsonObject loginInfo) throws DataAccessException {
+    public AuthData login(JsonObject loginInfo) throws Exception {
         String path = "/session";
         return this.makeRequest("POST", path, null, loginInfo, AuthData.class);
     }
 
-    public void logout(String authToken) throws DataAccessException {
+    public void logout(String authToken) throws Exception {
         String path = "/session";
         this.makeRequest("DELETE", path, authToken, null, null);
     }
 
-    public Object createGame(JsonObject gameName, String authToken) throws DataAccessException {
+    public Object createGame(JsonObject gameName, String authToken) throws Exception {
         String path = "/game";
         return this.makeRequest("POST", path, authToken, gameName, JsonObject.class);
     }
 
-    public JsonObject listGames(String authToken) throws DataAccessException {
+    public JsonObject listGames(String authToken) throws Exception {
         String path = "/game";
         return this.makeRequest("GET", path, authToken, null, JsonObject.class);
     }
 
-    public JsonObject joinGame(int gameID, String playerColor, String authToken) throws DataAccessException {
+    public JsonObject joinGame(int gameID, String playerColor, String authToken) throws Exception {
         String path = "/game";
         JsonObject jgo = new JsonObject();
         if (playerColor != null) {
@@ -57,17 +56,17 @@ public class ServerFacade {
         return this.makeRequest("PUT", path, authToken, jgo, JsonObject.class);
     }
 
-    public void updateGame(GameData gameData, String authToken) throws DataAccessException {
+    public void updateGame(GameData gameData, String authToken) throws Exception {
         String path = "/gameupdate";
         this.makeRequest("PUT", path, authToken, gameData, null);
     }
 
-    public void clear() throws DataAccessException {
+    public void clear() throws Exception {
         String path = "/db";
         this.makeRequest("DELETE", path, null, null, null);
     }
 
-    private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws DataAccessException {
+    private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws Exception {
         try {
             URL url = (new URI(serverURL + path)).toURL();
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
@@ -80,7 +79,7 @@ public class ServerFacade {
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
         } catch (Exception ex) {
-            throw new DataAccessException("makeRequest exception: " + ex.getMessage());
+            throw new Exception(ex.getMessage());
         }
     }
     private static void writeBody(Object request, HttpURLConnection http) throws IOException {
@@ -110,10 +109,10 @@ public class ServerFacade {
         return response;
     }
 
-    private void throwIfNotSuccessful(HttpURLConnection http) throws IOException, DataAccessException {
+    private void throwIfNotSuccessful(HttpURLConnection http) throws IOException {
         var status = http.getResponseCode();
         if (!isSuccessful(status)) {
-            throw new DataAccessException("Failure: " + status);
+            throw new IOException("throw not successful");
         }
     }
 
