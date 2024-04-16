@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="springframework.security.spring.core" type="repository">
+  <library name="springframework.security.spring.core.bcrypt" type="repository">
     <properties maven-id="org.springframework.security:spring-security-core:6.2.1" />
     <CLASSES>
       <root url="jar://$MAVEN_REPOSITORY$/org/springframework/security/spring-security-core/6.2.1/spring-security-core-6.2.1.jar!/" />
