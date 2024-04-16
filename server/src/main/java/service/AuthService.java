@@ -3,8 +3,6 @@ package service;
 
 import dataAccess.AuthDAO;
 import dataAccess.DataAccessException;
-import dataAccess.MemoryAuthDAO;
-import dataAccess.SqlAuthDAO;
 import model.AuthData;
 
 // Runs general AuthDAO; AuthDAO will decide to use Memory or SQL

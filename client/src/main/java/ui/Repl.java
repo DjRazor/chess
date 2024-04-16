@@ -2,10 +2,6 @@ package ui;
 
 import dataAccess.DataAccessException;
 import ui.websocket.NotificationHandler;
-import webSocketMessages.serverMessages.Error;
-import webSocketMessages.serverMessages.LoadGame;
-import webSocketMessages.serverMessages.ServerMessage;
-import webSocketMessages.serverMessages.ServerNotification;
 
 import java.util.Scanner;
 

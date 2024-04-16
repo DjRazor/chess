@@ -2,7 +2,6 @@ package serviceTests;
 import static org.junit.jupiter.api.Assertions.*;
 
 import chess.ChessGame;
-import com.google.gson.JsonObject;
 import dataAccess.*;
 import model.AuthData;
 import model.GameData;

@@ -1,7 +1,6 @@
 package passoffTests.serverTests;
 
 import chess.ChessGame;
-import dataAccess.DataAccessException;
 import org.junit.jupiter.api.*;
 import passoffTests.obfuscatedTestClasses.TestServerFacade;
 import passoffTests.testClasses.TestException;
