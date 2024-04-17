@@ -12,7 +12,6 @@ import server.ServerFacade;
 import ui.websocket.NotificationHandler;
 import ui.websocket.WebSocketFacade;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -20,7 +19,7 @@ import static ui.EscapeSequences.*;
 
 public class ChessClient {
     private LogState logState = LogState.OUT;
-    private ChessClientHelper chessClientHelper = new ChessClientHelper();
+    private final ChessClientHelper chessClientHelper = new ChessClientHelper();
     private GameState gameState = GameState.OUT_OF_GAME;
     private final ServerFacade facade;
     private WebSocketFacade ws;
@@ -31,7 +30,8 @@ public class ChessClient {
     private GameData currentGameData;
     private HashSet<ChessPosition> showEnds = new HashSet<>();
     private boolean showMovesEnabled;
-    private NotificationHandler notificationHandler;
+    private final NotificationHandler notificationHandler;
+    private Map<Integer, Integer> gameList;
     private static final String[] revLetters = {"h", "g", "f", "e", "d", "c", "b", "a"};
     private static final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h"};
 
@@ -41,7 +41,7 @@ public class ChessClient {
         this.notificationHandler = notificationHandler;
     }
 
-    public String eval(String input) throws InvalidMoveException, IOException {
+    public String eval(String input) {
         try {
             var tokens = input.toLowerCase().split(" ");
             var cmd = (tokens.length > 0) ? tokens[0] : "help";
@@ -103,7 +103,7 @@ public class ChessClient {
         username = null;
         teamColor = null;
         logState = LogState.OUT;
-        return temp + " signed out.\n";
+        return temp + " signed out.";
     }
     public String createGame(String... params) throws Exception {
         assertOutOfGame();
@@ -112,8 +112,9 @@ public class ChessClient {
             JsonObject gameName = new JsonObject();
             gameName.addProperty("gameName", params[0]);
             Object game = facade.createGame(gameName, authToken);
-            if (game.getClass().equals(GameData.class)) {
-                return "Successfully created game " + gameName;
+            if (game.getClass().equals(JsonObject.class)) {
+                String gameList = listGames();
+                return "Successfully created game: " + gameName.get("gameName").getAsString() + "\n" + gameList;
             }
             return game.toString();
         }
@@ -123,12 +124,8 @@ public class ChessClient {
         assertSignIn();
         assertOutOfGame();
 
-        // For resigned games, set ChessGame to null
-        // If GameData.game() == null, print "Finished game."
-        // Idk tho, could be good to keep game to show where it ended.
-        // Probably not because it's not that essential
-
         int count = 1;
+        Map<Integer, Integer> listNumGameID = new HashMap<>();
         ArrayList<String> gamesAsString = new ArrayList<>();
         JsonObject games = facade.listGames(authToken);
         JsonArray gamesArray = games.getAsJsonArray("games");
@@ -160,11 +157,13 @@ public class ChessClient {
                     
                     """.formatted(count, gameID, gameName, whiteUsername, blackUsername);
             gamesAsString.add(game);
+            listNumGameID.put(count, gameID);
             count += 1;
         }
+        gameList = listNumGameID;
         String gamesString = "";
         if (gamesAsString.isEmpty()) {
-            gamesString += "No games currently.\n";
+            gamesString += "No games currently.";
         }
         for (String game : gamesAsString) {
             gamesString += game;
@@ -174,13 +173,14 @@ public class ChessClient {
 
     private void setCurrentGameData(String gameID) throws Exception {
         JsonObject games = facade.listGames(authToken);
+        Integer newGameID = Integer.parseInt(gameID);
         JsonArray gamesArray = games.getAsJsonArray("games");
         for (JsonElement elem : gamesArray) {
             JsonObject gameElem = elem.getAsJsonObject();
             if (!gameElem.has("gameID")) {
                 throw new Exception("wack, no gameID!\n");
             }
-            if (gameElem.get("gameID").getAsString().equals(gameID)) {
+            if (Integer.parseInt(gameElem.get("gameID").getAsString()) == newGameID) {
                 currentGameData = new Gson().fromJson(gameElem, GameData.class);
             }
         }
@@ -189,23 +189,37 @@ public class ChessClient {
     public String joinGame(String... params) throws Exception {
         assertSignIn();
         assertOutOfGame();
-
-        setCurrentGameData(params[1]);
-        assertNotResigned();
+        listGames(); //generates list of Games with ID num if not present already
 
         if (params.length == 2) {
-            JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[1]), params[0], authToken);
-            ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
-            if (joinStatus.entrySet().isEmpty()) {
-                gameState = GameState.IN_GAME;
-                String tempTeamColor = params[0].toUpperCase();
-                setUserTeamColor(tempTeamColor);
+            if (params[0].equalsIgnoreCase("black") || params[0].equalsIgnoreCase("white")) {
+                Integer gameNum = Integer.parseInt(params[1]);
+                Integer correlatingGameID = null;
+                for (Map.Entry<Integer, Integer> entry : gameList.entrySet()) {
+                    if (entry.getKey().equals(gameNum)) {
+                        correlatingGameID = entry.getValue();
+                        break;
+                    }
+                }
+                if (correlatingGameID == null) {
+                    throw new Exception("Game number not found. Please try again.");
+                }
+                setCurrentGameData(String.valueOf(correlatingGameID));
+                assertNotResigned();
 
-                ws.joinPlayer(Integer.parseInt(params[1]), teamColor);
-                return "Successfully joined " + params[0].toUpperCase() + " in game " + params[1] + "\n";
+                JsonObject joinStatus = facade.joinGame(correlatingGameID, getTeamColor(params[0]), authToken);
+                ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
+                if (joinStatus.entrySet().isEmpty()) {
+                    gameState = GameState.IN_GAME;
+                    String tempTeamColor = params[0].toUpperCase();
+                    setUserTeamColor(tempTeamColor);
+
+                    ws.joinPlayer(correlatingGameID, teamColor);
+                    return "Successfully joined " + params[0].toUpperCase() + " in game " + gameNum + "\n";
+                }
+                ws.joinPlayer(correlatingGameID, null);
             }
-            ws.joinPlayer(Integer.parseInt(params[1]), null);
-            System.out.println("sent null playerColor in joinPlayer");
+            //System.out.println("sent null playerColor in joinPlayer");
             return "Invalid color. Please try again.\n";
         }
         throw new Exception("Expected 2 arguments but " + params.length + " were given.\n");
@@ -213,14 +227,30 @@ public class ChessClient {
     public String joinObserver(String... params) throws Exception {
         assertSignIn();
         assertOutOfGame();
-        // NEW WS FACADE ws.enterGame(username)
+        listGames();
+
         if (params.length == 1) {
-            JsonObject joinStatus = facade.joinGame(Integer.parseInt(params[0]), null, authToken);
+            Integer gameNum = Integer.parseInt(params[0]);
+            Integer correlatingGameID = null;
+            for (Map.Entry<Integer, Integer> entry : gameList.entrySet()) {
+                if (entry.getKey().equals(gameNum)) {
+                    correlatingGameID = entry.getValue();
+                    break;
+                }
+            }
+            if (correlatingGameID == null) {
+                throw new Exception("Game number not found. Please try again.");
+            }
+            setCurrentGameData(String.valueOf(correlatingGameID));
+            assertNotResigned();
+
+            JsonObject joinStatus = facade.joinGame(correlatingGameID, ChessGame.TeamColor.NONE, authToken);
             if (joinStatus.entrySet().isEmpty()) {
                 gameState = GameState.IN_GAME;
                 ws = new WebSocketFacade(serverURL, notificationHandler, authToken);
-                ws.joinObserver(Integer.parseInt(params[0]));
-                return "Observing game " + params[0];
+                teamColor = ChessGame.TeamColor.NONE;
+                ws.joinObserver(correlatingGameID);
+                return "Observing game " + gameNum;
             }
         }
         throw new Exception("Expected 1 argument but " + params.length + " were given.\n");
@@ -250,8 +280,8 @@ public class ChessClient {
                - logout
                - createGame <gameName>
                - listGames
-               - joinGame <color> <gameID>
-               - joinObserver <gameID>
+               - joinGame <color> <game #>
+               - joinObserver <game #>
                - quit
                - help
                """;
@@ -261,27 +291,29 @@ public class ChessClient {
     public String redraw() throws Exception {
         assertSignIn();
         assertInGame();
-
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
 
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         out.print(ERASE_SCREEN);
-
-        drawBoard1(out);
-        out.println("\u001B[0m");
-        drawBoard2(out);
+        if (teamColor.equals(ChessGame.TeamColor.WHITE)) {
+            drawBoard2(out);
+        } else if (teamColor.equals(ChessGame.TeamColor.BLACK)) {
+            drawBoard1(out);
+        } else { // Observer
+            drawBoard1(out);
+            out.println("\u001B[0m");
+            drawBoard2(out);
+        }
 
         // Resets all attributes to default
         out.println("\u001B[0m");
-
-        return "Boards drawn.\n";
+        return "Board drawn.";
     }
 
     public String showMoves(String ...params) throws Exception {
         assertSignIn();
         assertInGame();
-
         setCurrentGameData(String.valueOf(currentGameData.gameID()));
         assertNotResigned();
 
@@ -350,9 +382,29 @@ public class ChessClient {
                         ChessPosition startPos = new ChessPosition(startRow, startCol);
                         ChessPosition endPos = new ChessPosition(endRow, endCol);
                         ChessMove move = new ChessMove(startPos, endPos, null);
+                        if (currentGameData.game().getBoard().getPiece(startPos) == null) {
+                            throw new Exception("Can't move null spot");
+                        }
+                        if (currentGameData.game().isInCheckmate(ChessGame.TeamColor.BLACK)) {
+                            throw new Exception("Game over. Black in checkmate");
+                        }
+                        if (currentGameData.game().isInCheckmate(ChessGame.TeamColor.WHITE)) {
+                            throw new Exception("Game over. White in checkmate");
+                        }
+                        if (currentGameData.game().isInStalemate(ChessGame.TeamColor.WHITE)) {
+                            throw new Exception("Game over. White in stalemate");
+                        }
+                        if (currentGameData.game().isInStalemate(ChessGame.TeamColor.BLACK)) {
+                            throw new Exception("Game over. White in stalemate");
+                        }
+                        if (currentGameData.game().getTeamTurn().equals(ChessGame.TeamColor.NONE)) {
+                            throw new Exception("Game has been resigned");
+                        }
+
                         ws.makeMove(currentGameData.gameID(), move);
 
-                        return "Moved " + params[0] + " to " + params[1] + "\n";
+                        //return "You moved " + params[0] + " to " + params[1];
+                        return "\b";
                     }
                     throw new Exception("Invalid number in move.");
                 }
@@ -381,7 +433,7 @@ public class ChessClient {
             switch (line) {
                 case "Y" -> {
                     ws.resign(currentGameData.gameID());
-                    return "End game.\n";
+                    return "\b";
                 }
                 case "N" -> {
                     return "Continuing game.\n";
@@ -446,7 +498,7 @@ public class ChessClient {
 
     private void assertNotResigned() throws Exception {
         if (currentGameData.game().getTeamTurn().equals(ChessGame.TeamColor.NONE)) {
-            throw new Exception("The game has ended due to resign.\n");
+            throw new Exception("The game has ended.\n");
         }
     }
 
@@ -542,5 +594,17 @@ public class ChessClient {
         } else {
             throw new Exception("Error setting User team color.");
         }
+    }
+
+    private ChessGame.TeamColor getTeamColor(String color) {
+        color = color.toUpperCase();
+        if (color.equals("WHITE")) {
+            return ChessGame.TeamColor.WHITE;
+        } else if (color.equals("BLACK")) {
+            return ChessGame.TeamColor.BLACK;
+        } else if (color.equals("NONE")) {
+            return ChessGame.TeamColor.NONE;
+        }
+        return null;
     }
 }

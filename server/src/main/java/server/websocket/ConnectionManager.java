@@ -48,9 +48,9 @@ public class ConnectionManager {
                 removeList.add(c);
             }
         }
-        for (var c : removeList) {
-            connections.remove(c.authToken);
-        }
+//        for (var c : removeList) {
+//            connections.remove(c.authToken);
+//        }
     }
 
     public void broadcastAll(Integer gameID, ServerMessage serverMessage) throws IOException {
@@ -66,9 +66,9 @@ public class ConnectionManager {
                 removeList.add(c);
             }
         }
-        for (var c : removeList) {
-            connections.remove(c.authToken);
-        }
+//        for (var c : removeList) {
+//            connections.remove(c.authToken);
+//        }
     }
 
     // May need to make separate broadcastGameAll

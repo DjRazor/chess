@@ -26,8 +26,9 @@ public class WebSocketFacade extends Endpoint {
             URI socketURI = new URI(url + "/connect");
             this.notificationHandler = notificationHandler;
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            container.setDefaultMaxSessionIdleTimeout(5 * 60 * 1000);
+            container.setDefaultMaxSessionIdleTimeout(600 * 60 * 1000);
             this.session = container.connectToServer(this, socketURI);
+            this.session.setMaxIdleTimeout(6000000);
             this.authString = authString;
             this.session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
@@ -71,7 +72,7 @@ public class WebSocketFacade extends Endpoint {
         JoinPlayer join = new JoinPlayer(authString, gameID, playerColor);
         join.setCommandType(UserGameCommand.CommandType.JOIN_PLAYER);
         this.session.getBasicRemote().sendText(new Gson().toJson(join));
-        System.out.println("sent join player: " + new Gson().toJson(join));
+        //System.out.println("sent join player: " + new Gson().toJson(join));
     }
 
     public void joinObserver(Integer gameID) throws IOException {

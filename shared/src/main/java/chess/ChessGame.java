@@ -206,6 +206,7 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
+        ChessBoard originalBoard = currentBoard.clone();
         for (int i = 1; i < 9; i++) {
             for (int j = 1; j < 9; j++) {
                 ChessPiece pieceInQ = currentBoard.getPiece(new ChessPosition(i, j));
@@ -216,6 +217,7 @@ public class ChessGame {
                         currentBoard.addPiece(x.getEndPosition(), pieceInQ);
                         currentBoard.resetPosition(x.getStartPosition());
                         if (!isInCheck(teamColor)) {
+                            currentBoard = originalBoard;
                             return false;
                         }
                         currentBoard = testingBoard;
@@ -223,6 +225,7 @@ public class ChessGame {
                 }
             }
         }
+        currentBoard = originalBoard;
         return true;
     }
 

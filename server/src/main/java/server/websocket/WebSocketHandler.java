@@ -100,6 +100,11 @@ public class WebSocketHandler {
             connections.broadcastToOne(session, error);
         }
 
+        else if (currentGame.game().getTeamTurn().equals(ChessGame.TeamColor.NONE)) {
+            var error = new Error(ServerMessage.ServerMessageType.ERROR, "Game has ended.");
+            connections.broadcastToOne(session, error);
+        }
+
         // Checks white availability
         else if (joinCmd.getPlayerColor() == ChessGame.TeamColor.WHITE && !username.equals(currentGame.whiteUsername())) {
             System.out.println(currentGame.whiteUsername());
@@ -137,14 +142,14 @@ public class WebSocketHandler {
             }
 
             connections.add(username, joinCmd.getAuthString(), joinCmd.getGameID(), joinCmd.getPlayerColor(), session);
-            System.out.println("added " + username + " to connections\n");
+            //System.out.println("added " + username + " to connections\n");
             var message = String.format("%s has entered the game as %s.", username, joinCmd.getPlayerColor());
             var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
             connections.broadcast(joinCmd.getAuthString(), joinCmd.getGameID(), notification);
-            var loadGame = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, "loaded game", "game hold");
+            var loadGame = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, "Loaded game.", "game hold");
             connections.broadcastGame(joinCmd.getAuthString(), joinCmd.getGameID(), loadGame);
         } else {
-            System.out.println("EXISTING USER");
+            //System.out.println("EXISTING USER");
             var error = new Error(ServerMessage.ServerMessageType.ERROR, "Taken spot/Wrong Team");
             connections.broadcastToOne(session, error);
         }
@@ -161,7 +166,7 @@ public class WebSocketHandler {
             connections.broadcast(joinObserverCmd.getAuthString(), joinObserverCmd.getGameID(), notification);
             var loadGame = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME,
                     "You are now observing game: " + joinObserverCmd.getGameID(), "game hold");
-            connections.broadcastToOne(session, loadGame);
+            connections.broadcastGame(joinObserverCmd.getAuthString(), joinObserverCmd.getGameID(), loadGame);
         } else {
             var error = new Error(ServerMessage.ServerMessageType.ERROR, "WSH: Invalid auth/gameID");
             connections.broadcastToOne(session, error);
@@ -170,13 +175,12 @@ public class WebSocketHandler {
 
     private void makeMove(MakeMove makeMoveCmd, Session session) throws DataAccessException, IOException, InvalidMoveException {
         GameData currentGameData = gameDAO.getGame(makeMoveCmd.getGameID());
-        ChessBoard currentBoard = currentGameData.game().getBoard();
         ChessMove move = makeMoveCmd.getMove();
         var validMoves = currentGameData.game().validMoves(move.getStartPosition());
         ChessGame.TeamColor currentColor = currentGameData.game().getTeamTurn();
         ChessGame.TeamColor userColor = connections.getTeamColor(makeMoveCmd.getAuthString());
         validMoves.removeIf(mv -> !mv.getStartPosition().equals(move.getStartPosition())
-                || mv.getEndPosition().equals(move.getEndPosition()));
+                || !mv.getEndPosition().equals(move.getEndPosition()));
 
         if (!currentColor.equals(userColor)) {
             var error = new Error(ServerMessage.ServerMessageType.ERROR, "Not your turn.");
@@ -191,21 +195,60 @@ public class WebSocketHandler {
         // if the size is > 0, it could only be because the piece
         // is a pawn and can be promoted
         else {
-            if (validMoves.size() > 1) {
-                //ChessPiece promoPiece = getPromoPiece(currentGameData.game().getTeamTurn());
-                currentGameData.game().makeMove(new ChessMove(move.getStartPosition(), move.getEndPosition(), null));
+            currentGameData.game().makeMove(move);
+            if (currentGameData.game().isInCheckmate(opposingTeam(currentColor))) {
+                var notifyCheckmate = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, opposingTeam(currentColor) + " is in checkmate! " + currentColor + " wins!");
+                connections.broadcastAll(makeMoveCmd.getGameID(), notifyCheckmate);
+                currentGameData.game().setTeamTurn(ChessGame.TeamColor.NONE);
+                gameDAO.updateGame(currentGameData);
+            }
+            else if (currentGameData.game().isInStalemate(opposingTeam(currentColor))) {
+                var notifyCheckmate = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, opposingTeam(currentColor) + " is in stalemate! No winner.");
+                connections.broadcastAll(makeMoveCmd.getGameID(), notifyCheckmate);
+                currentGameData.game().setTeamTurn(ChessGame.TeamColor.NONE);
+                gameDAO.updateGame(currentGameData);
             }
             else {
-                currentGameData.game().makeMove(move);
+                gameDAO.updateGame(currentGameData);
+                var gameUpdate = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, "", "game game");
+                connections.broadcastGameAll(makeMoveCmd.getGameID(), gameUpdate);
 
+                String message = currentColor + " (" + currentGameData.whiteUsername() + ")" + " moved " + convertPosToString(move.getStartPosition()) + " to " + convertPosToString(move.getEndPosition());
+                var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
+                connections.broadcastAll(makeMoveCmd.getGameID(), notification);
+
+                if (currentGameData.game().isInCheck(opposingTeam(currentColor))) {
+                    var notifyCheck = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, opposingTeam(currentColor) + " is in check!");
+                    connections.broadcastAll(makeMoveCmd.getGameID(), notifyCheck);
+                }
             }
-            gameDAO.updateGame(currentGameData);
-            String message = "Moved " + move.getStartPosition() + " to " + move.getEndPosition();
-            var notification = new ServerNotification(ServerMessage.ServerMessageType.NOTIFICATION, message);
-            connections.broadcast(makeMoveCmd.getAuthString(), currentGameData.gameID(), notification);
-            var gameUpdate = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, "", "game game");
-            connections.broadcastGameAll(makeMoveCmd.getGameID(), gameUpdate);
         }
+    }
+
+    private String convertPosToString(ChessPosition pos) {
+        String row = String.valueOf(pos.getRow());
+        int col = pos.getColumn();
+        String newPos = "";
+        switch (col) {
+            case 1 -> newPos += "a";
+            case 2 -> newPos += "b";
+            case 3 -> newPos += "c";
+            case 4 -> newPos += "d";
+            case 5 -> newPos += "e";
+            case 6 -> newPos += "f";
+            case 7 -> newPos += "g";
+            case 8 -> newPos += "h";
+            default -> newPos += "";
+        }
+        newPos += row;
+        return newPos;
+    }
+
+    private ChessGame.TeamColor opposingTeam(ChessGame.TeamColor color) {
+        if (color.equals(ChessGame.TeamColor.WHITE)) {
+            return ChessGame.TeamColor.BLACK;
+        }
+        return ChessGame.TeamColor.WHITE;
     }
 
     private void leave(Leave leaveCmd, Session session) throws DataAccessException, IOException {

@@ -1,6 +1,5 @@
 package ui;
 
-import chess.ChessGame;
 import chess.ChessPiece;
 
 import java.io.PrintStream;
